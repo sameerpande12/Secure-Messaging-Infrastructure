@@ -25,24 +25,24 @@ class ClientHandler extends Thread{
                 Matcher matcher = pattern.matcher(requestHeader);
                 if(matcher.find()){
                     String username = matcher.group(1);
-                    System.out.println("OK");
+                    
                     output_to_client.writeBytes("REGISTERED TOSEND "+username+"\n\n");
-                    System.out.println("OK1");
+                    
                 }
                 else{
-                    // output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
+                    output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
                 }
             }
             else if(requestHeader.matches(regToRecv) && newline.matches("")){
                 Pattern pattern = Pattern.compile(regToRecv);
                 Matcher matcher = pattern.matcher(requestHeader);
                 if(matcher.find()){
-                    // String username = matcher.group(1);
-                    // output_to_client.writeBytes("REGISTERED TORECV "+username+"\n\n");
-                    System.out.println("OK");
+                    String username = matcher.group(1);
+                    output_to_client.writeBytes("REGISTERED TORECV "+username+"\n\n");
+                    // System.out.println("OK");
                 }
                 else{
-                    // output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
+                    output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
                 }
             }
         }
@@ -65,18 +65,31 @@ public class Server{
         @Override
         public void run(){
             while(true){
+                try{
                 Socket inputSocket = serv_socket.accept();
                 Thread thread = new Thread(new ClientHandler(inputSocket));
                 thread.start();
+                }
+                catch (IOException e){
+                    System.out.println(e);
+                }
             }
         }
     }
 
-    public Server(int receiver_port,int sender_port)throws IOException{
+    public Server(int receiver_port,int sender_port)throws IOException,InterruptedException{
         serv_receiver_socket = new ServerSocket(receiver_port);
         serv_sender_socket = new ServerSocket(sender_port);
 
-        
+        Thread t1 = new Thread(new ServerCreator(serv_receiver_socket));
+        Thread t2 = new Thread(new ServerCreator(serv_sender_socket));
+
+        t1.start();
+        t2.start();
+
+        t1.join();
+        t2.join();
+        System.out.println("Joined");
         // while(true){
             
         //         Socket inputSocket = serv_send_socket.accept();
@@ -86,7 +99,7 @@ public class Server{
         // }
         
     }
-    public static void main(String args[])throws IOException{
+    public static void main(String args[])throws IOException,InterruptedException{
         
         Server server = new Server(6000,6100);
         
