@@ -8,8 +8,10 @@ class ClientHandler extends Thread{
 
     private String regToSend = "REGISTER TOSEND ([a-zA-Z0-9]+)";
     private String regToRecv = "REGISTER TORECV ([a-zA-Z0-9]+)";
-    public ClientHandler(Socket inputSocket){
+    private boolean isReceiver;
+    public ClientHandler(Socket inputSocket,boolean isReceiver){
         this.clientSocket = inputSocket;
+        this.isReceiver = isReceiver;
     }
 
     @Override
@@ -20,29 +22,34 @@ class ClientHandler extends Thread{
 
             String requestHeader = input_from_client.readLine();
             String newline = input_from_client.readLine();
-            if(requestHeader.matches(regToSend) && newline.matches("")){
-                Pattern pattern = Pattern.compile(regToSend);
-                Matcher matcher = pattern.matcher(requestHeader);
-                if(matcher.find()){
-                    String username = matcher.group(1);
-                    
-                    output_to_client.writeBytes("REGISTERED TOSEND "+username+"\n\n");
-                    
-                }
-                else{
-                    output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
+
+            if(this.isReceiver){
+                if(requestHeader.matches(regToSend) && newline.matches("")){
+                    Pattern pattern = Pattern.compile(regToSend);
+                    Matcher matcher = pattern.matcher(requestHeader);
+                    if(matcher.find()){
+                        String username = matcher.group(1);
+                        
+                        output_to_client.writeBytes("REGISTERED TOSEND "+username+"\n\n");
+                        
+                    }
+                    else{
+                        output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
+                    }
                 }
             }
-            else if(requestHeader.matches(regToRecv) && newline.matches("")){
-                Pattern pattern = Pattern.compile(regToRecv);
-                Matcher matcher = pattern.matcher(requestHeader);
-                if(matcher.find()){
-                    String username = matcher.group(1);
-                    output_to_client.writeBytes("REGISTERED TORECV "+username+"\n\n");
-                    // System.out.println("OK");
-                }
-                else{
-                    output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
+            else{
+                if(requestHeader.matches(regToRecv) && newline.matches("")){
+                    Pattern pattern = Pattern.compile(regToRecv);
+                    Matcher matcher = pattern.matcher(requestHeader);
+                    if(matcher.find()){
+                        String username = matcher.group(1);
+                        output_to_client.writeBytes("REGISTERED TORECV "+username+"\n\n");
+                        // System.out.println("OK");
+                    }
+                    else{
+                        output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
+                    }
                 }
             }
         }
@@ -59,15 +66,17 @@ public class Server{
 
     class ServerCreator implements Runnable{
         ServerSocket serv_socket;
-        public ServerCreator(ServerSocket serv_socket){
+        boolean isReceiver;
+        public ServerCreator(ServerSocket serv_socket,boolean isReceiver){
             this.serv_socket= serv_socket;
+            this.isReceiver = isReceiver;
         }
         @Override
         public void run(){
             while(true){
                 try{
                 Socket inputSocket = serv_socket.accept();
-                Thread thread = new Thread(new ClientHandler(inputSocket));
+                Thread thread = new Thread(new ClientHandler(inputSocket,this.isReceiver));
                 thread.start();
                 }
                 catch (IOException e){
@@ -78,11 +87,11 @@ public class Server{
     }
 
     public Server(int receiver_port,int sender_port)throws IOException,InterruptedException{
-        serv_receiver_socket = new ServerSocket(receiver_port);
-        serv_sender_socket = new ServerSocket(sender_port);
+        serv_receiver_socket = new ServerSocket(receiver_port);//server listens on this port
+        serv_sender_socket = new ServerSocket(sender_port);// server sends from this port
 
-        Thread t1 = new Thread(new ServerCreator(serv_receiver_socket));
-        Thread t2 = new Thread(new ServerCreator(serv_sender_socket));
+        Thread t1 = new Thread(new ServerCreator(serv_receiver_socket,true));
+        Thread t2 = new Thread(new ServerCreator(serv_sender_socket,false));
 
         t1.start();
         t2.start();
@@ -101,7 +110,7 @@ public class Server{
     }
     public static void main(String args[])throws IOException,InterruptedException{
         
-        Server server = new Server(6000,6100);
+        new Server(6000,6100);
         
     }
 }
