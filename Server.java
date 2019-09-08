@@ -46,7 +46,10 @@ class ClientHandler implements Runnable{
             String requestHeader = input_from_client.readLine();
             if(!(requestHeader.matches(regToSend) || requestHeader.matches(regToRecv))){
                 output_to_client.writeBytes("ERROR 101 No user registerd\n\n");
-                clientSocket.close();
+                try{clientSocket.close();}
+                catch(Exception err){;}
+                try{socket_streams.remove(clientSocket);}
+                catch(Exception err){;}
                 return;
             }
 
@@ -60,21 +63,45 @@ class ClientHandler implements Runnable{
                     if(matcher.find()){
                         String username = matcher.group(1);
                         sender_username = username;
-                        sending_ports_map.put(username,clientSocket);
-                        output_to_client.writeBytes("REGISTERED TOSEND "+username+"\n\n");
-                        System.out.println("REGISTERED TOSEND "+username+"\n\n");
+                        if(sending_ports_map.containsKey(sender_username)){
+                            try{clientSocket.close();}
+                            catch(Exception err){;}
+                            try{socket_streams.remove(clientSocket);}
+                            catch(Exception err){;}
+                            return;
+
+                        }
+                        else{
+                            sending_ports_map.put(username,clientSocket);
+                            output_to_client.writeBytes("REGISTERED TOSEND "+username+"\n\n");
+                            System.out.println("REGISTERED TOSEND "+username+"\n\n");
+                        }
                         
                     }
                     else{
                         output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
-                        clientSocket.close();
+                        
+                        
+                            try{clientSocket.close();}
+                            catch(Exception err){;}
+                            try{socket_streams.remove(clientSocket);}
+                            catch(Exception err){;}
+                        
+                        
                         return;
                     }
                 }
                 else{
                     output_to_client.writeBytes("ERROR 101 No user registered\n\n");
-                    clientSocket.close();
+                    
+                        try{clientSocket.close();}
+                        catch(Exception err){;}
+                        try{socket_streams.remove(clientSocket);}
+                        catch(Exception err){;}
+                    
+                    
                     return;
+                    
                 }
                 //done registration or socket closed till here;
                 while(true){
@@ -97,7 +124,7 @@ class ClientHandler implements Runnable{
                              System.out.println("Receipient username: "+receipient_username);
                         }
                         else{
-                            output_to_client.writeBytes("ERROR 103 Header incomplete\n\n");
+                            output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
                             // clientSocket.close();
                             System.out.println("Incomplete header");
                             // return;
@@ -116,9 +143,16 @@ class ClientHandler implements Runnable{
                         }
                         else{
                             output_to_client.writeBytes("ERROR 103 Header incomplete\n\n");
-                            // clientSocket.closse();
-                            // return;
-                            continue;
+                            try{clientSocket.close();}
+                            catch(Exception err){;}
+                            try{socket_streams.remove(clientSocket);}
+                            catch(Exception err){;}
+                            try{sending_ports_map.remove(sender_username);}
+                            catch(Exception err){;}
+                            try{receiving_ports_map.remove(sender_username);}
+                            catch(Exception err){;}
+                            return;
+                            
                         }
                         
                         //begin reading message
@@ -148,7 +182,7 @@ class ClientHandler implements Runnable{
                         secondLine = input_from_receipient.readLine();
                         System.out.println(secondLine);
                         
-                        //HOW TO DISTINGUISH FOR WHICH SENDER IS THE HEADER INCOMPLETE MESSAGE ? 
+                        //HOW TO DISTINGUISH FOR WHICH SENDER IS THE HEADER  INCOMPLETE MESSAGE ? 
                         if(firstLine.matches("RECEIVED ([a-zA-Z0-9]+)") && secondLine.matches("")){
                             // pattern = new Pattern.compile("RECEIVED ([a-zA-Z0-9]+)");
                             // matcher = pattern.matcher(firstLine);
@@ -168,9 +202,31 @@ class ClientHandler implements Runnable{
 
 
                     }
-                    else{
+                    else if(!secondLine.matches(content_length_header)){//case when content length header is missing
                         output_to_client.writeBytes("ERROR 103 Header incomplete\n\n");
-                        continue;
+                        try{clientSocket.close();}
+                        catch(Exception err){;}
+                        try{socket_streams.remove(clientSocket);}
+                        catch(Exception err){;}
+                        try{sending_ports_map.remove(sender_username);}
+                        catch(Exception err){;}
+                        try{receiving_ports_map.remove(sender_username);}
+                        catch(Exception err){;}
+                        return;
+                            
+                    }
+                    else{//case when requestheader is out of format. not decided yet for this block. temporary for now
+                        output_to_client.writeBytes("ERROR 103 Header incomplete\n\n");
+                        try{clientSocket.close();}
+                        catch(Exception err){;}
+                        try{socket_streams.remove(clientSocket);}
+                        catch(Exception err){;}
+                        try{sending_ports_map.remove(sender_username);}
+                        catch(Exception err){;}
+                        try{receiving_ports_map.remove(sender_username);}
+                        catch(Exception err){;}
+                        return;
+                        
                     }
                     
 
@@ -191,12 +247,18 @@ class ClientHandler implements Runnable{
                     }
                     else{
                         output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
-                        clientSocket.close();
+                        try{clientSocket.close();}
+                        catch(Exception err){;}
+                        try{socket_streams.remove(clientSocket);}
+                        catch(Exception err){;}
                     }
                 }
                 else{
                     output_to_client.writeBytes("ERROR 101 No user registered\n\n");
-                    clientSocket.close();
+                    try{clientSocket.close();}
+                    catch(Exception err){;}
+                    try{socket_streams.remove(clientSocket);}
+                    catch(Exception err){;}
 
                 }
                 System.out.println("Closing the server_sending thread");
@@ -204,12 +266,10 @@ class ClientHandler implements Runnable{
         }
         catch(IOException e){
             System.out.println("IOError");
-            try{
-                clientSocket.close();
-            }
-            catch(Exception exceptin){
-                ;
-            }
+            try{clientSocket.close();}
+            catch(Exception err){;}
+            try{socket_streams.remove(clientSocket);}
+            catch(Exception err){;}
         }
     }
 }

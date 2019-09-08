@@ -1,0 +1,6 @@
+Q.1 Check why there is null pointer error in client when a client uses a repeated username? (Pratheek)
+Q.2 How do you ensure a socket is blocked for intermediary communication between server and destination Client? (Sameer)
+Q.3 When to actually close the connections ? Since it would require us to make sure that  (Discuss)
+Q.4 What happens when a user sets destination address to wrong username?(Discuss)
+Q.5 What happens when First Line of header is wrong ("Not in the format") ?(Discuss)
+Q.6 Check error handling. Remove unnecessary layers(Sameer)
