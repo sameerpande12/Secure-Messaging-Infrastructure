@@ -156,23 +156,26 @@ public class Client {
             if(input.charAt(0) != '@')
                 continue;
             String[] array = input.substring(1).split(" ",2);
-            if(array.length <2)
+            if(array.length <2){
+                System.out.println("Wrong Format!!\n");
                 continue;
+            }
 
             String output = "SEND " + array[0] +"\nContent-length: "+array[1].length()
                                 +"\n\n"+array[1];
-            System.out.println(output);
+            //System.out.println(output);
+            //System.out.print(array[1]);
             
             toSendServerStream.writeBytes(output); 
             }
             catch(Exception e)
             {
-                System.out.println("Caight");
+                System.out.println("Caught");
             }
 
             try{
-                String response = inFromUser.readLine();
-                String newline = inFromUser.readLine();
+                String response = inFromSendServer.readLine();
+                String newline = inFromSendServer.readLine();
                 Pattern pattern = Pattern.compile("SENT (.*?)$");
                 Matcher matcher = pattern.matcher(response);
                 if (matcher.find())
@@ -208,7 +211,8 @@ public class Client {
             String fromusername="";
             int length=0;
             boolean correct = true;
-            try{
+            try
+            {
             String input = inFromReceiveServer.readLine();
             
 
@@ -220,7 +224,7 @@ public class Client {
                 correct = false;
 
             input = inFromReceiveServer.readLine();
-            pattern = Pattern.compile("Content-length (.*?)$");
+            pattern = Pattern.compile("Content-length: (.*?)$");
             matcher = pattern.matcher(input);
             if (matcher.find())
                 length = Integer.parseInt(matcher.group(1));
@@ -289,9 +293,24 @@ public class Client {
         a = client.registerToReceive(args[0]);
         if(a == false)
             return;
-        System.out.println("\nYou can now start sending messages!");
+        System.out.println("\nYou can now start sending messages!\n");
         //client.send();
-        client.receive();
+        //client.receive();
+        Thread t1 = new Thread() {
+
+            @Override
+            public void run() {
+                client.send();
+            }
+        };
+        Thread t2 = new Thread() {
+
+            public void run() {
+                client.receive();
+            }
+        };
+        t1.start();
+        t2.start();
         
         
         
