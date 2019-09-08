@@ -230,7 +230,7 @@ public class Client {
                 length = Integer.parseInt(matcher.group(1));
             else
                 correct = false;
-            
+            // System.out.println("Message Length :"+Integer.toString(length));
             input = inFromReceiveServer.readLine();
 
             if(correct == false)
@@ -240,10 +240,13 @@ public class Client {
                 ReceiveSocket.close();
                 continue;
             }
-            String message = "";
+
+            char [] msg_buf = new char[length];
+            int contentLength = inFromReceiveServer.read(msg_buf,0,length);
+            String message = new String(msg_buf);
             
-            for(int i =0;i<length;i++)
-                message = message +inFromReceiveServer.read();
+            // for(int i =0;i<length;i++)
+                // message = message +inFromReceiveServer.read();
 
             String output = "RECEIVED "+fromusername+"\n\n";
             toReceiveServerStream.writeBytes(output);

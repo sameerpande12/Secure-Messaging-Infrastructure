@@ -1,5 +1,5 @@
 import java.io.*;
-
+import java.util.*;
 import java.net.*;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
@@ -14,12 +14,12 @@ class ClientHandler implements Runnable{
     private String regToRecv = "REGISTER TORECV ([a-zA-Z0-9]+)";
     private String sendHeader = "SEND ([a-zA-Z0-9]+)";
     private String content_length_header = "Content-length: ([0-9]+)";
-    private String sentHeader = "SENT ";
+    // private String sentHeader = "SENT ";
     private boolean isReceiver;
     private ConcurrentHashMap<String,Socket> receiving_ports_map;
     private ConcurrentHashMap<String,Socket> sending_ports_map;
     private ConcurrentHashMap<Socket,Pair<BufferedReader,DataOutputStream>> socket_streams;
-    public ClientHandler(Socket inputSocket,boolean isReceiver,ConcurrentHashMap<String,Socket>receiving_ports_map,ConcurrentHashMap<String,Socket>sending_ports_map,ConcurrentHashMap<Socket,Pair<BufferedReader,DataOutputStream>>receving_streams){
+    public ClientHandler(Socket inputSocket,boolean isReceiver,ConcurrentHashMap<String,Socket>receiving_ports_map,ConcurrentHashMap<String,Socket>sending_ports_map,ConcurrentHashMap<Socket,Pair<BufferedReader,DataOutputStream>>socket_streams){
         this.clientSocket = inputSocket;
         this.isReceiver = isReceiver;
         this.receiving_ports_map = receiving_ports_map;
@@ -32,7 +32,17 @@ class ClientHandler implements Runnable{
         try{
             BufferedReader  input_from_client = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             DataOutputStream  output_to_client = new DataOutputStream(clientSocket.getOutputStream());
-            socket_streams.put(clientSocket,new Pair(input_from_client,output_to_client));
+
+            Pair<BufferedReader,DataOutputStream> stream_pairs = new Pair<>(input_from_client,output_to_client);
+            // if(clientSocket==null || input_from_client==null || output_to_client==null){
+            //     System.out.println("Gadbad hai bro");
+            // }
+            // else{
+            //     System.out.println("Chill hai");
+            // }
+            
+            
+            socket_streams.put(clientSocket, stream_pairs);
             String requestHeader = input_from_client.readLine();
             if(!(requestHeader.matches(regToSend) || requestHeader.matches(regToRecv))){
                 output_to_client.writeBytes("ERROR 101 No user registerd\n\n");
@@ -52,6 +62,7 @@ class ClientHandler implements Runnable{
                         sender_username = username;
                         sending_ports_map.put(username,clientSocket);
                         output_to_client.writeBytes("REGISTERED TOSEND "+username+"\n\n");
+                        System.out.println("REGISTERED TOSEND "+username+"\n\n");
                         
                     }
                     else{
@@ -68,12 +79,14 @@ class ClientHandler implements Runnable{
                 //done registration or socket closed till here;
                 while(true){
                     String firstLine = input_from_client.readLine();
+                    System.out.println(firstLine);
                     if(!sending_ports_map.containsKey(sender_username)){
                         output_to_client.writeBytes("ERROR 101 No user registered\n\n");
                         continue;
                     }
 
                     String secondLine = input_from_client.readLine();
+                    System.out.println(secondLine);
                     
                     if(firstLine.matches(sendHeader)&& secondLine.matches(content_length_header)){
                         Pattern pattern = Pattern.compile(sendHeader);
@@ -81,18 +94,24 @@ class ClientHandler implements Runnable{
                         String receipient_username;
                         if(matcher.find()){
                              receipient_username = matcher.group(1);
+                             System.out.println("Receipient username: "+receipient_username);
                         }
                         else{
                             output_to_client.writeBytes("ERROR 103 Header incomplete\n\n");
                             // clientSocket.close();
+                            System.out.println("Incomplete header");
                             // return;
                             continue;
                         }
                         
                         pattern = Pattern.compile(content_length_header);
                         matcher = pattern.matcher(secondLine);
+                        System.out.println("waiting to reading newline");
+                        String newline = input_from_client.readLine();
+                        System.out.println("done reading newline");
+                        System.out.println("newline :"+newline);
                         int messageLength;
-                        if(matcher.find() && input_from_client.readLine()==""){
+                        if(matcher.find() && newline.matches("")){
                             messageLength = Integer.parseInt(matcher.group(1));
                         }
                         else{
@@ -104,10 +123,12 @@ class ClientHandler implements Runnable{
                         
                         //begin reading message
                         char [] message = new char[messageLength];
+                        System.out.println("Message length="+messageLength);
                         
                         int num_chars_read = input_from_client.read(message, 0, messageLength);
                         //num_chars_read must be same as message length; -1 when reading completely not specified
                         //incorportate this later. now assume everything goes well
+                        System.out.println(new String(message));
                         Socket receipient_socket = receiving_ports_map.get(receipient_username);
                         String forward_string = String.format("FORWARD %s\nContent-length: %d\n\n%s",receipient_username,messageLength,new String(message));
                         
@@ -119,7 +140,9 @@ class ClientHandler implements Runnable{
 
 
                         firstLine = input_from_receipient.readLine();
+                        System.out.println(firstLine);
                         secondLine = input_from_receipient.readLine();
+                        System.out.println(secondLine);
                         
                         //HOW TO DISTINGUISH FOR WHICH SENDER IS THE HEADER INCOMPLETE MESSAGE ? 
                         if(firstLine.matches("RECEIVED ([a-zA-Z0-9]+)") && secondLine.matches("")){
@@ -159,6 +182,7 @@ class ClientHandler implements Runnable{
                         String username = matcher.group(1);
                         receiving_ports_map.put(username,clientSocket);
                         output_to_client.writeBytes("REGISTERED TORECV "+username+"\n\n");
+                        System.out.println("REGISTERED TORECV "+username+"\n\n");
                         // System.out.println("OK");
                     }
                     else{
@@ -171,6 +195,7 @@ class ClientHandler implements Runnable{
                     clientSocket.close();
 
                 }
+                System.out.println("Closing the server_sending thread");
             }
         }
         catch(IOException e){
