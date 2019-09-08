@@ -1,4 +1,5 @@
 import java.io.*;
+
 import java.net.*;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
@@ -6,7 +7,7 @@ import java.util.regex.Pattern;
 import javafx.util.Pair;
 import java.util.concurrent.ConcurrentHashMap;
 
-class ClientHandler extends Thread{
+class ClientHandler implements Runnable{
     private Socket clientSocket;
 
     private String regToSend = "REGISTER TOSEND ([a-zA-Z0-9]+)";
@@ -16,12 +17,14 @@ class ClientHandler extends Thread{
     private String sentHeader = "SENT ";
     private boolean isReceiver;
     private ConcurrentHashMap<String,Socket> receiving_ports_map;
-    private ConcurrentHashMap<Socket,Pair<BufferedReader,DataOuputStream>> receiving_streams;
-    public ClientHandler(Socket inputSocket,boolean isReceiver,ConcurrentHashMap<String,Socket>receiving_ports_map,ConcurrentHashMap<Socket,Pair<BufferedReader,DataOuputStream>>receving_streams){
+    private ConcurrentHashMap<String,Socket> sending_ports_map;
+    private ConcurrentHashMap<Socket,Pair<BufferedReader,DataOutputStream>> socket_streams;
+    public ClientHandler(Socket inputSocket,boolean isReceiver,ConcurrentHashMap<String,Socket>receiving_ports_map,ConcurrentHashMap<String,Socket>sending_ports_map,ConcurrentHashMap<Socket,Pair<BufferedReader,DataOutputStream>>receving_streams){
         this.clientSocket = inputSocket;
         this.isReceiver = isReceiver;
         this.receiving_ports_map = receiving_ports_map;
-        this.receiving_streams = receiving_streams;
+        this.sending_ports_map = sending_ports_map;
+        this.socket_streams = socket_streams;
     }
 
     @Override
@@ -29,8 +32,14 @@ class ClientHandler extends Thread{
         try{
             BufferedReader  input_from_client = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             DataOutputStream  output_to_client = new DataOutputStream(clientSocket.getOutputStream());
-            receiving_streams.put(clientSocket,new Pair(input_from_client,output_to_client));
+            socket_streams.put(clientSocket,new Pair(input_from_client,output_to_client));
             String requestHeader = input_from_client.readLine();
+            if(!(requestHeader.matches(regToSend) || requestHeader.matches(regToRecv))){
+                output_to_client.writeBytes("ERROR 101 No user registerd\n\n");
+                clientSocket.close();
+                return;
+            }
+
             String nextline = input_from_client.readLine();
             
             if(this.isReceiver){
@@ -41,25 +50,33 @@ class ClientHandler extends Thread{
                     if(matcher.find()){
                         String username = matcher.group(1);
                         sender_username = username;
+                        sending_ports_map.put(username,clientSocket);
                         output_to_client.writeBytes("REGISTERED TOSEND "+username+"\n\n");
                         
                     }
                     else{
                         output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
                         clientSocket.close();
+                        return;
                     }
                 }
                 else{
                     output_to_client.writeBytes("ERROR 101 No user registered\n\n");
                     clientSocket.close();
+                    return;
                 }
-
+                //done registration or socket closed till here;
                 while(true){
                     String firstLine = input_from_client.readLine();
+                    if(!sending_ports_map.containsKey(sender_username)){
+                        output_to_client.writeBytes("ERROR 101 No user registered\n\n");
+                        continue;
+                    }
+
                     String secondLine = input_from_client.readLine();
                     
                     if(firstLine.matches(sendHeader)&& secondLine.matches(content_length_header)){
-                        Patter pattern = Pattern.compile(sendHeader);
+                        Pattern pattern = Pattern.compile(sendHeader);
                         Matcher matcher = pattern.matcher(firstLine);
                         String receipient_username;
                         if(matcher.find()){
@@ -67,11 +84,12 @@ class ClientHandler extends Thread{
                         }
                         else{
                             output_to_client.writeBytes("ERROR 103 Header incomplete\n\n");
-                            clientSocket.close();
+                            // clientSocket.close();
+                            // return;
                             continue;
                         }
                         
-                        pattern = Patter.compile(content_length_header);
+                        pattern = Pattern.compile(content_length_header);
                         matcher = pattern.matcher(secondLine);
                         int messageLength;
                         if(matcher.find() && input_from_client.readLine()==""){
@@ -79,39 +97,53 @@ class ClientHandler extends Thread{
                         }
                         else{
                             output_to_client.writeBytes("ERROR 103 Header incomplete\n\n");
-                            clientSocket.closse();
+                            // clientSocket.closse();
+                            // return;
                             continue;
                         }
+                        
                         //begin reading message
                         char [] message = new char[messageLength];
                         
                         int num_chars_read = input_from_client.read(message, 0, messageLength);
                         //num_chars_read must be same as message length; -1 when reading completely not specified
                         //incorportate this later. now assume everything goes well
-                        Socket receipientSocket = receiving_ports_map.get(sender_username);
+                        Socket receipient_socket = receiving_ports_map.get(receipient_username);
                         String forward_string = String.format("FORWARD %s\nContent-length: %d\n\n%s",receipient_username,messageLength,new String(message));
                         
 
-                        BufferedReader input_from_receipient = (receiving_streams.get(receipient_username)).getKey();
-                        DataOutputStream output_to_receipient = (receiving_streams.get(receipient_username)).getValue();
+                        BufferedReader input_from_receipient = (socket_streams.get(receipient_socket)).getKey();
+                        DataOutputStream output_to_receipient = (socket_streams.get(receipient_socket)).getValue();
                         output_to_receipient.writeBytes(forward_string);
+                        //sent data to reciepient
 
-                        // firstLine = input_from_client.readLine();
-                        // secondLine = input_from_client.readLine();
-                        // boolean delivered = true;
-                        // if(firstLine.matches("RECEIVED ([a-zA-Z0-9]+)") && secondLine.matches("")){
-                        //     pattern = new Pattern.compile("RECEIVED ([a-zA-Z0-9]+)");
-                        //     matcher = pattern.matcher(firstLine);
-                        // }
-                        // else if(firstLine.matches("ERROR 103 Header incomplete") && secondLine.matches("")){
-                        //     delivered = false;
-                        // }
-                        // else{
-                        //     delivered = false;
-                        // }
+
+                        firstLine = input_from_receipient.readLine();
+                        secondLine = input_from_receipient.readLine();
+                        
+                        //HOW TO DISTINGUISH FOR WHICH SENDER IS THE HEADER INCOMPLETE MESSAGE ? 
+                        if(firstLine.matches("RECEIVED ([a-zA-Z0-9]+)") && secondLine.matches("")){
+                            // pattern = new Pattern.compile("RECEIVED ([a-zA-Z0-9]+)");
+                            // matcher = pattern.matcher(firstLine);
+                            
+                            output_to_client.writeBytes("SENT "+receipient_username+"\n\n");
+                        }
+                        else if(firstLine.matches("ERROR 103 Header incomplete") && secondLine.matches("")){
+                            
+                            output_to_client.writeBytes("ERROR 102 Unable to send\n");
+                        }
+                        else{
+                            
+                            output_to_client.writeBytes("ERROR 102 Unable to send\n");
+                        }
+                        
                         
 
 
+                    }
+                    else{
+                        output_to_client.writeBytes("ERROR 103 Header incomplete\n\n");
+                        continue;
                     }
                     
 
@@ -164,19 +196,21 @@ public class Server{
         ServerSocket serv_socket;
         boolean isReceiver;
         ConcurrentHashMap<String,Socket> receiving_ports_map;
-        ConcurrentHashMap<Socket,Pair<BufferedReader,DataOuputStream>> receiving_streams;
-        public ServerCreator(ServerSocket serv_socket,boolean isReceiver,ConcurrentHashMap<String,Socket>receiving_ports_map,ConcurrentHashMap<Socket,Pair<BufferedReader,DataOuputStream>>receiving_streams){
+        ConcurrentHashMap<String,Socket>sending_ports_map;
+        ConcurrentHashMap<Socket,Pair<BufferedReader,DataOutputStream>> socket_streams;
+        public ServerCreator(ServerSocket serv_socket,boolean isReceiver,ConcurrentHashMap<String,Socket>receiving_ports_map,ConcurrentHashMap<String,Socket>sending_ports_map,ConcurrentHashMap<Socket,Pair<BufferedReader,DataOutputStream>>socket_streams){
             this.serv_socket= serv_socket;
             this.isReceiver = isReceiver;
             this.receiving_ports_map = receiving_ports_map;
-            this.receiving_streams = receiving_streams;
+            this.sending_ports_map = sending_ports_map;
+            this.socket_streams = socket_streams;
         }
         @Override
         public void run(){
             while(true){
                 try{
                 Socket inputSocket = serv_socket.accept();
-                Thread thread = new Thread(new ClientHandler(inputSocket,this.isReceiver,receiving_ports_map,receiving_streams));
+                Thread thread = new Thread(new ClientHandler(inputSocket,this.isReceiver,receiving_ports_map,sending_ports_map,socket_streams));
                 thread.start();
                 }
                 catch (IOException e){
@@ -190,9 +224,11 @@ public class Server{
         serv_receiver_socket = new ServerSocket(receiver_port);//server listens on this port
         serv_sender_socket = new ServerSocket(sender_port);// server sends from this port
         ConcurrentHashMap <String,Socket> receiving_ports_map = new ConcurrentHashMap<String,Socket>();//maps usernames to their receiving sockets
-        ConcurrentHashMap<Socket,Pair<BufferedReader,DataOuputStream>> receiving_streams;
-        Thread t1 = new Thread(new ServerCreator(serv_receiver_socket,true,receiving_ports_map,receiving_streams));
-        Thread t2 = new Thread(new ServerCreator(serv_sender_socket,false,receiving_ports_map,receiving_streams));
+        ConcurrentHashMap <String,Socket> sending_ports_map = new ConcurrentHashMap<String,Socket>();
+        ConcurrentHashMap<Socket,Pair<BufferedReader,DataOutputStream>> socket_streams = new ConcurrentHashMap<Socket,Pair<BufferedReader,DataOutputStream>>();
+        
+        Thread t1 = new Thread(new ServerCreator(serv_receiver_socket,true,receiving_ports_map,sending_ports_map,socket_streams));
+        Thread t2 = new Thread(new ServerCreator(serv_sender_socket,false,receiving_ports_map,sending_ports_map,socket_streams));
 
         t1.start();
         t2.start();
