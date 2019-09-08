@@ -160,7 +160,7 @@ public class Client {
                 System.out.println("Wrong Format!!\n");
                 continue;
             }
-
+            username = array[0];
             String output = "SEND " + array[0] +"\nContent-length: "+array[1].length()
                                 +"\n\n"+array[1];
             //System.out.println(output);
@@ -173,7 +173,7 @@ public class Client {
                 System.out.println("Caught");
             }
 
-            try{
+            try{//was throwing error since username was null and username.equals was called
                 String response = inFromSendServer.readLine();
                 String newline = inFromSendServer.readLine();
                 Pattern pattern = Pattern.compile("SENT (.*?)$");

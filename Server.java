@@ -129,6 +129,10 @@ class ClientHandler implements Runnable{
                         //num_chars_read must be same as message length; -1 when reading completely not specified
                         //incorportate this later. now assume everything goes well
                         System.out.println(new String(message));
+                        if(!receiving_ports_map.containsKey(receipient_username)){
+                            output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
+                            continue;
+                        }
                         Socket receipient_socket = receiving_ports_map.get(receipient_username);
                         String forward_string = String.format("FORWARD %s\nContent-length: %d\n\n%s",receipient_username,messageLength,new String(message));
                         
@@ -153,11 +157,11 @@ class ClientHandler implements Runnable{
                         }
                         else if(firstLine.matches("ERROR 103 Header incomplete") && secondLine.matches("")){
                             
-                            output_to_client.writeBytes("ERROR 102 Unable to send\n");
+                            output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
                         }
                         else{
                             
-                            output_to_client.writeBytes("ERROR 102 Unable to send\n");
+                            output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
                         }
                         
                         
