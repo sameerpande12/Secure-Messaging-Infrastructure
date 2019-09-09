@@ -159,7 +159,8 @@ class ClientHandler implements Runnable{
                         char [] message = new char[messageLength];
                         System.out.println("Message length="+messageLength);
                         
-                        int num_chars_read = input_from_client.read(message, 0, messageLength);
+                        // int num_chars_read = input_from_client.read(message, 0, messageLength);
+                        input_from_client.read(message, 0, messageLength);
                         //num_chars_read must be same as message length; -1 when reading completely not specified
                         //incorportate this later. now assume everything goes well
                         System.out.println(new String(message));
@@ -167,38 +168,40 @@ class ClientHandler implements Runnable{
                             output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
                             continue;
                         }
+
                         Socket receipient_socket = receiving_ports_map.get(receipient_username);
-                        String forward_string = String.format("FORWARD %s\nContent-length: %d\n\n%s",receipient_username,messageLength,new String(message));
-                        
-
-                        BufferedReader input_from_receipient = (socket_streams.get(receipient_socket)).getKey();
-                        DataOutputStream output_to_receipient = (socket_streams.get(receipient_socket)).getValue();
-                        output_to_receipient.writeBytes(forward_string);
-                        //sent data to reciepient
-
-
-                        firstLine = input_from_receipient.readLine();
-                        System.out.println(firstLine);
-                        secondLine = input_from_receipient.readLine();
-                        System.out.println(secondLine);
-                        
-                        //HOW TO DISTINGUISH FOR WHICH SENDER IS THE HEADER  INCOMPLETE MESSAGE ? 
-                        if(firstLine.matches("RECEIVED ([a-zA-Z0-9]+)") && secondLine.matches("")){
-                            // pattern = new Pattern.compile("RECEIVED ([a-zA-Z0-9]+)");
-                            // matcher = pattern.matcher(firstLine);
+                        synchronized(receipient_socket){
+                            String forward_string = String.format("FORWARD %s\nContent-length: %d\n\n%s",sender_username,messageLength,new String(message));
                             
-                            output_to_client.writeBytes("SENT "+receipient_username+"\n\n");
-                        }
-                        else if(firstLine.matches("ERROR 103 Header incomplete") && secondLine.matches("")){
+
+                            BufferedReader input_from_receipient = (socket_streams.get(receipient_socket)).getKey();
+                            DataOutputStream output_to_receipient = (socket_streams.get(receipient_socket)).getValue();
+                            output_to_receipient.writeBytes(forward_string);
+                            //sent data to reciepient
+
+
+                            firstLine = input_from_receipient.readLine();
+                            System.out.println(firstLine);
+                            secondLine = input_from_receipient.readLine();
+                            System.out.println(secondLine);
                             
-                            output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
-                        }
-                        else{
-                            
-                            output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
-                        }
+                            //HOW TO DISTINGUISH FOR WHICH SENDER IS THE HEADER  INCOMPLETE MESSAGE ? 
+                            if(firstLine.matches("RECEIVED ([a-zA-Z0-9]+)") && secondLine.matches("")){
+                                // pattern = new Pattern.compile("RECEIVED ([a-zA-Z0-9]+)");
+                                // matcher = pattern.matcher(firstLine);
+                                
+                                output_to_client.writeBytes("SENT "+receipient_username+"\n\n");
+                            }
+                            else if(firstLine.matches("ERROR 103 Header incomplete") && secondLine.matches("")){
+                                
+                                output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
+                            }
+                            else{
+                                
+                                output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
+                            }
                         
-                        
+                        } 
 
 
                     }
