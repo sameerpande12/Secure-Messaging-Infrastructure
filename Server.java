@@ -127,7 +127,7 @@ class ClientHandler implements Runnable{
                 while(true){
                     String firstLine = input_from_client.readLine();
                     System.out.println(firstLine);
-                    if(!sending_ports_map.containsKey(sender_username)){
+                    if(!receiving_ports_map.containsKey(sender_username)){
                         output_to_client.writeBytes("ERROR 101 No user registered\n\n");
                         continue;
                     }
@@ -271,9 +271,18 @@ class ClientHandler implements Runnable{
                     Matcher matcher = pattern.matcher(requestHeader);
                     if(matcher.find()){
                         String username = matcher.group(1);
-                        receiving_ports_map.put(username,clientSocket);
-                        output_to_client.writeBytes("REGISTERED TORECV "+username+"\n\n");
-                        System.out.println("REGISTERED TORECV "+username+"\n\n");
+                        if(receiving_ports_map.containsKey(username)){
+                            output_to_client.writeBytes("ERROR 101 No user registered\n\n");        
+                            System.out.println("ERROR 101 No user registered\n\n");
+                            try{clientSocket.close();}
+                            catch(Exception err){;}
+                            try{socket_streams.remove(clientSocket);}
+                            catch(Exception err){;}
+                            return;
+                        }
+                            receiving_ports_map.put(username,clientSocket);
+                            output_to_client.writeBytes("REGISTERED TORECV "+username+"\n\n");
+                            System.out.println("REGISTERED TORECV "+username+"\n\n");
                         // System.out.println("OK");
                     }
                     else{
