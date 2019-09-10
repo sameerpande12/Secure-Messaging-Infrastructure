@@ -291,6 +291,14 @@ class ClientHandler implements Runnable{
                         catch(Exception err){;}
                     }
                 }
+                else if(requestHeader.matches("REGISTER TORECV (.*?)") && !requestHeader.matches(regToRecv)){
+                    output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
+                    System.out.println("ERROR 100 Malformed username\n\n");
+                    try{clientSocket.close();}
+                    catch(Exception err){;}
+                    try{socket_streams.remove(clientSocket);}
+                    catch(Exception err){;}
+                }
                 else{
                     output_to_client.writeBytes("ERROR 101 No user registered\n\n");
                     System.out.println("ERROR 101 No user registered\n\n");
@@ -300,6 +308,7 @@ class ClientHandler implements Runnable{
                     catch(Exception err){;}
 
                 }
+                
                 System.out.println("Closing the server_sending thread");
             }
         }
