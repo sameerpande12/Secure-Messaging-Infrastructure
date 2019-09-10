@@ -19,13 +19,15 @@ class ClientHandler implements Runnable{
     private boolean isReceiver;
     private ConcurrentHashMap<String,Socket> receiving_ports_map;
     private ConcurrentHashMap<String,Socket> sending_ports_map;
+    private ConcurrentHashMap<String,String> public_key_map;
     private ConcurrentHashMap<Socket,AbstractMap.SimpleEntry<BufferedReader,DataOutputStream>> socket_streams;
-    public ClientHandler(Socket inputSocket,boolean isReceiver,ConcurrentHashMap<String,Socket>receiving_ports_map,ConcurrentHashMap<String,Socket>sending_ports_map,ConcurrentHashMap<Socket,AbstractMap.SimpleEntry<BufferedReader,DataOutputStream>>socket_streams){
+    public ClientHandler(Socket inputSocket,boolean isReceiver,ConcurrentHashMap<String,Socket>receiving_ports_map,ConcurrentHashMap<String,Socket>sending_ports_map,ConcurrentHashMap<Socket,AbstractMap.SimpleEntry<BufferedReader,DataOutputStream>>socket_streams,ConcurrentHashMap<String,String>public_key_map){
         this.clientSocket = inputSocket;
         this.isReceiver = isReceiver;
         this.receiving_ports_map = receiving_ports_map;
         this.sending_ports_map = sending_ports_map;
         this.socket_streams = socket_streams;
+        this.public_key_map = public_key_map;
     }
 
     @Override
@@ -47,7 +49,14 @@ class ClientHandler implements Runnable{
             String requestHeader = input_from_client.readLine();
             System.out.println("~"+requestHeader);
             if(!(requestHeader.matches(regToSend) || requestHeader.matches(regToRecv))){
-                output_to_client.writeBytes("ERROR 101 No user registerd\n\n");
+                if(requestHeader.matches("REGISTER TOSEND (.*?)") && !requestHeader.matches(regToSend)){
+                    output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
+                    System.out.println("ERROR 100 Malformed username\n\n");
+                }
+                else{ 
+                    output_to_client.writeBytes("ERROR 101 No user registerd\n\n");
+                    System.out.println("ERROR 101 No user registerd\n\n");
+                }
                 try{clientSocket.close();}
                 catch(Exception err){;}
                 try{socket_streams.remove(clientSocket);}
@@ -59,7 +68,9 @@ class ClientHandler implements Runnable{
             
             if(this.isReceiver){
                 String sender_username;
+                // System.out.println("HI");
                 if(requestHeader.matches(regToSend) && nextline.matches("")){
+                    // System.out.println("HII");
                     Pattern pattern = Pattern.compile(regToSend);
                     Matcher matcher = pattern.matcher(requestHeader);
                     if(matcher.find()){
@@ -82,9 +93,15 @@ class ClientHandler implements Runnable{
                         
                     }
                     else{
-                        output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
-                        
-                        
+                        // System.out.println("HIII");
+                        if(requestHeader.matches("REGISTER TOSEND (.*?)") && !requestHeader.matches(regToSend)){
+                           output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
+                           System.out.println("ERROR 100 Malformed username\n\n");
+                        }
+                        else{
+                            output_to_client.writeBytes("ERROR 101 No user registered\n\n");        
+                            System.out.println("ERROR 101 No user registered\n\n");
+                        }
                             try{clientSocket.close();}
                             catch(Exception err){;}
                             try{socket_streams.remove(clientSocket);}
@@ -96,7 +113,7 @@ class ClientHandler implements Runnable{
                 }
                 else{
                     output_to_client.writeBytes("ERROR 101 No user registered\n\n");
-                    
+                    System.out.println("ERROR 101 No user registered\n\n");
                         try{clientSocket.close();}
                         catch(Exception err){;}
                         try{socket_streams.remove(clientSocket);}
@@ -128,6 +145,7 @@ class ClientHandler implements Runnable{
                         }
                         else{
                             output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
+                            System.out.println("ERROR 102 Unable to send\n\n");
                             // clientSocket.close();
                             System.out.println("Incomplete header");
                             // return;
@@ -146,6 +164,7 @@ class ClientHandler implements Runnable{
                         }
                         else{
                             output_to_client.writeBytes("ERROR 103 Header incomplete\n\n");
+                            System.out.println("ERROR 103 Header incomplete\n\n");
                             try{clientSocket.close();}
                             catch(Exception err){;}
                             try{socket_streams.remove(clientSocket);}
@@ -169,6 +188,7 @@ class ClientHandler implements Runnable{
                         System.out.println(new String(message));
                         if(!receiving_ports_map.containsKey(receipient_username)){
                             output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
+                            System.out.println("ERROR 102 Unable to send\n\n");
                             continue;
                         }
 
@@ -199,10 +219,12 @@ class ClientHandler implements Runnable{
                             else if(firstLine.matches("ERROR 103 Header incomplete") && secondLine.matches("")){
                                 
                                 output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
+                                System.out.println("ERROR 102 Unable to send\n\n");
                             }
                             else{
                                 
                                 output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
+                                System.out.println("ERROR 102 Unable to send\n\n");
                             }
                         
                         } 
@@ -211,6 +233,7 @@ class ClientHandler implements Runnable{
                     }
                     else if(!secondLine.matches(content_length_header)){//case when content length header is missing
                         output_to_client.writeBytes("ERROR 103 Header incomplete\n\n");
+                        System.out.println("ERROR 103 Header incomplete\n\n");
                         try{clientSocket.close();}
                         catch(Exception err){;}
                         try{socket_streams.remove(clientSocket);}
@@ -224,6 +247,7 @@ class ClientHandler implements Runnable{
                     }
                     else{//case when requestheader is out of format. not decided yet for this block. temporary for now
                         output_to_client.writeBytes("ERROR 103 Header incomplete\n\n");
+                        System.out.println("ERROR 103 Header incomplete\n\n");
                         try{clientSocket.close();}
                         catch(Exception err){;}
                         try{socket_streams.remove(clientSocket);}
@@ -253,7 +277,14 @@ class ClientHandler implements Runnable{
                         // System.out.println("OK");
                     }
                     else{
-                        output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
+                        if(requestHeader.matches("REGISTER TORECV (.*?)") && !requestHeader.matches(regToRecv)){
+                            output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
+                            System.out.println("ERROR 100 Malformed username\n\n");
+                        }
+                        else{
+                            output_to_client.writeBytes("ERROR 101 No user registered\n\n");        
+                            System.out.println("ERROR 101 No user registered\n\n");
+                        }    
                         try{clientSocket.close();}
                         catch(Exception err){;}
                         try{socket_streams.remove(clientSocket);}
@@ -262,6 +293,7 @@ class ClientHandler implements Runnable{
                 }
                 else{
                     output_to_client.writeBytes("ERROR 101 No user registered\n\n");
+                    System.out.println("ERROR 101 No user registered\n\n");
                     try{clientSocket.close();}
                     catch(Exception err){;}
                     try{socket_streams.remove(clientSocket);}
@@ -293,20 +325,22 @@ public class Server{
         boolean isReceiver;
         ConcurrentHashMap<String,Socket> receiving_ports_map;
         ConcurrentHashMap<String,Socket>sending_ports_map;
+        ConcurrentHashMap<String,String> public_key_map;
         ConcurrentHashMap<Socket,AbstractMap.SimpleEntry<BufferedReader,DataOutputStream>> socket_streams;
-        public ServerCreator(ServerSocket serv_socket,boolean isReceiver,ConcurrentHashMap<String,Socket>receiving_ports_map,ConcurrentHashMap<String,Socket>sending_ports_map,ConcurrentHashMap<Socket,AbstractMap.SimpleEntry<BufferedReader,DataOutputStream>>socket_streams){
+        public ServerCreator(ServerSocket serv_socket,boolean isReceiver,ConcurrentHashMap<String,Socket>receiving_ports_map,ConcurrentHashMap<String,Socket>sending_ports_map,ConcurrentHashMap<Socket,AbstractMap.SimpleEntry<BufferedReader,DataOutputStream>>socket_streams,ConcurrentHashMap<String,String>public_key_map){
             this.serv_socket= serv_socket;
             this.isReceiver = isReceiver;
             this.receiving_ports_map = receiving_ports_map;
             this.sending_ports_map = sending_ports_map;
             this.socket_streams = socket_streams;
+            this.public_key_map = public_key_map;
         }
         @Override
         public void run(){
             while(true){
                 try{
                 Socket inputSocket = serv_socket.accept();
-                Thread thread = new Thread(new ClientHandler(inputSocket,this.isReceiver,receiving_ports_map,sending_ports_map,socket_streams));
+                Thread thread = new Thread(new ClientHandler(inputSocket,this.isReceiver,receiving_ports_map,sending_ports_map,socket_streams,public_key_map));
                 thread.start();
                 }
                 catch (IOException e){
@@ -321,10 +355,11 @@ public class Server{
         serv_sender_socket = new ServerSocket(sender_port);// server sends from this port
         ConcurrentHashMap <String,Socket> receiving_ports_map = new ConcurrentHashMap<String,Socket>();//maps usernames to their receiving sockets
         ConcurrentHashMap <String,Socket> sending_ports_map = new ConcurrentHashMap<String,Socket>();
+        ConcurrentHashMap<String,String> public_key_map = new ConcurrentHashMap<String,String>();
         ConcurrentHashMap<Socket,AbstractMap.SimpleEntry<BufferedReader,DataOutputStream>> socket_streams = new ConcurrentHashMap<Socket,AbstractMap.SimpleEntry<BufferedReader,DataOutputStream>>();
         
-        Thread t1 = new Thread(new ServerCreator(serv_receiver_socket,true,receiving_ports_map,sending_ports_map,socket_streams));
-        Thread t2 = new Thread(new ServerCreator(serv_sender_socket,false,receiving_ports_map,sending_ports_map,socket_streams));
+        Thread t1 = new Thread(new ServerCreator(serv_receiver_socket,true,receiving_ports_map,sending_ports_map,socket_streams,public_key_map));
+        Thread t2 = new Thread(new ServerCreator(serv_sender_socket,false,receiving_ports_map,sending_ports_map,socket_streams,public_key_map));
 
         t1.start();
         t2.start();
