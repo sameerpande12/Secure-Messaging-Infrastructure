@@ -4,7 +4,8 @@ import java.net.*;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javafx.util.Pair;
+
+import java.util.AbstractMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 class ClientHandler implements Runnable{
@@ -18,8 +19,8 @@ class ClientHandler implements Runnable{
     private boolean isReceiver;
     private ConcurrentHashMap<String,Socket> receiving_ports_map;
     private ConcurrentHashMap<String,Socket> sending_ports_map;
-    private ConcurrentHashMap<Socket,Pair<BufferedReader,DataOutputStream>> socket_streams;
-    public ClientHandler(Socket inputSocket,boolean isReceiver,ConcurrentHashMap<String,Socket>receiving_ports_map,ConcurrentHashMap<String,Socket>sending_ports_map,ConcurrentHashMap<Socket,Pair<BufferedReader,DataOutputStream>>socket_streams){
+    private ConcurrentHashMap<Socket,AbstractMap.SimpleEntry<BufferedReader,DataOutputStream>> socket_streams;
+    public ClientHandler(Socket inputSocket,boolean isReceiver,ConcurrentHashMap<String,Socket>receiving_ports_map,ConcurrentHashMap<String,Socket>sending_ports_map,ConcurrentHashMap<Socket,AbstractMap.SimpleEntry<BufferedReader,DataOutputStream>>socket_streams){
         this.clientSocket = inputSocket;
         this.isReceiver = isReceiver;
         this.receiving_ports_map = receiving_ports_map;
@@ -33,7 +34,7 @@ class ClientHandler implements Runnable{
             BufferedReader  input_from_client = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             DataOutputStream  output_to_client = new DataOutputStream(clientSocket.getOutputStream());
 
-            Pair<BufferedReader,DataOutputStream> stream_pairs = new Pair<>(input_from_client,output_to_client);
+            AbstractMap.SimpleEntry<BufferedReader,DataOutputStream> stream_pairs = new AbstractMap.SimpleEntry<>(input_from_client,output_to_client);
             // if(clientSocket==null || input_from_client==null || output_to_client==null){
             //     System.out.println("Gadbad hai bro");
             // }
@@ -44,6 +45,7 @@ class ClientHandler implements Runnable{
             
             socket_streams.put(clientSocket, stream_pairs);
             String requestHeader = input_from_client.readLine();
+            System.out.println("~"+requestHeader);
             if(!(requestHeader.matches(regToSend) || requestHeader.matches(regToRecv))){
                 output_to_client.writeBytes("ERROR 101 No user registerd\n\n");
                 try{clientSocket.close();}
@@ -63,6 +65,7 @@ class ClientHandler implements Runnable{
                     if(matcher.find()){
                         String username = matcher.group(1);
                         sender_username = username;
+                        
                         if(sending_ports_map.containsKey(sender_username)){
                             try{clientSocket.close();}
                             catch(Exception err){;}
@@ -171,8 +174,9 @@ class ClientHandler implements Runnable{
 
                         Socket receipient_socket = receiving_ports_map.get(receipient_username);
                         synchronized(receipient_socket){
+                             
                             String forward_string = String.format("FORWARD %s\nContent-length: %d\n\n%s",sender_username,messageLength,new String(message));
-                            
+                            System.out.println("\n"+forward_string);
 
                             BufferedReader input_from_receipient = (socket_streams.get(receipient_socket)).getKey();
                             DataOutputStream output_to_receipient = (socket_streams.get(receipient_socket)).getValue();
@@ -289,8 +293,8 @@ public class Server{
         boolean isReceiver;
         ConcurrentHashMap<String,Socket> receiving_ports_map;
         ConcurrentHashMap<String,Socket>sending_ports_map;
-        ConcurrentHashMap<Socket,Pair<BufferedReader,DataOutputStream>> socket_streams;
-        public ServerCreator(ServerSocket serv_socket,boolean isReceiver,ConcurrentHashMap<String,Socket>receiving_ports_map,ConcurrentHashMap<String,Socket>sending_ports_map,ConcurrentHashMap<Socket,Pair<BufferedReader,DataOutputStream>>socket_streams){
+        ConcurrentHashMap<Socket,AbstractMap.SimpleEntry<BufferedReader,DataOutputStream>> socket_streams;
+        public ServerCreator(ServerSocket serv_socket,boolean isReceiver,ConcurrentHashMap<String,Socket>receiving_ports_map,ConcurrentHashMap<String,Socket>sending_ports_map,ConcurrentHashMap<Socket,AbstractMap.SimpleEntry<BufferedReader,DataOutputStream>>socket_streams){
             this.serv_socket= serv_socket;
             this.isReceiver = isReceiver;
             this.receiving_ports_map = receiving_ports_map;
@@ -317,7 +321,7 @@ public class Server{
         serv_sender_socket = new ServerSocket(sender_port);// server sends from this port
         ConcurrentHashMap <String,Socket> receiving_ports_map = new ConcurrentHashMap<String,Socket>();//maps usernames to their receiving sockets
         ConcurrentHashMap <String,Socket> sending_ports_map = new ConcurrentHashMap<String,Socket>();
-        ConcurrentHashMap<Socket,Pair<BufferedReader,DataOutputStream>> socket_streams = new ConcurrentHashMap<Socket,Pair<BufferedReader,DataOutputStream>>();
+        ConcurrentHashMap<Socket,AbstractMap.SimpleEntry<BufferedReader,DataOutputStream>> socket_streams = new ConcurrentHashMap<Socket,AbstractMap.SimpleEntry<BufferedReader,DataOutputStream>>();
         
         Thread t1 = new Thread(new ServerCreator(serv_receiver_socket,true,receiving_ports_map,sending_ports_map,socket_streams));
         Thread t2 = new Thread(new ServerCreator(serv_sender_socket,false,receiving_ports_map,sending_ports_map,socket_streams));
