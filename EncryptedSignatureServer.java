@@ -66,6 +66,7 @@ class ClientHandler implements Runnable{
             }
 
             String nextline = input_from_client.readLine();
+            System.out.println("~"+nextline);
             
             if(this.isReceiver){
                 String sender_username;
@@ -217,60 +218,73 @@ class ClientHandler implements Runnable{
                                 return;
                                 
                             }
-                            
-                            //begin reading message
-                            char [] message = new char[messageLength];
-                            System.out.println("Message length="+messageLength);
-                            
-                            // int num_chars_read = input_from_client.read(message, 0, messageLength);
-                            input_from_client.read(message, 0, messageLength);
-                            //num_chars_read must be same as message length; -1 when reading completely not specified
-                            //incorportate this later. now assume everything goes well
-                            System.out.println(new String(message));
-                            if(!receiving_ports_map.containsKey(receipient_username)){
+
+                            String signatureLine = input_from_client.readLine();
+                            newline = input_from_client.readLine();
+                            if(signatureLine.matches("Signature: (.*?)") && newline.matches("")){
+                                        Pattern sigPattern = Pattern.compile("Signature: (.*?)");
+                                        Matcher sigMatcher = sigPattern.matcher(signatureLine);
+
+                                        String signature = sigMatcher.group(1);
+                                        //begin reading message
+                                        char [] message = new char[messageLength];
+                                        System.out.println("Message length="+messageLength);
+                                        
+                                        // int num_chars_read = input_from_client.read(message, 0, messageLength);
+                                        input_from_client.read(message, 0, messageLength);
+                                        //num_chars_read must be same as message length; -1 when reading completely not specified
+                                        //incorportate this later. now assume everything goes well
+                                        System.out.println(new String(message));
+                                        if(!receiving_ports_map.containsKey(receipient_username)){
+                                            output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
+                                            System.out.println("ERROR 102 Unable to send\n\n");
+                                            continue;
+                                        }
+
+                                        Socket receipient_socket = receiving_ports_map.get(receipient_username);
+                                        synchronized(receipient_socket){
+                                            
+                                            String forward_string = String.format("FORWARD %s\nContent-length: %d\n\nSignature: %s\n\n%s",sender_username,messageLength,signature,new String(message));
+                                            System.out.println("\n"+forward_string);
+
+                                            BufferedReader input_from_receipient = (socket_streams.get(receipient_socket)).getKey();
+                                            DataOutputStream output_to_receipient = (socket_streams.get(receipient_socket)).getValue();
+                                            output_to_receipient.writeBytes(forward_string);
+                                            //sent data to reciepient
+
+
+                                            firstLine = input_from_receipient.readLine();
+                                            System.out.println(firstLine);
+                                            secondLine = input_from_receipient.readLine();
+                                            System.out.println(secondLine);
+                                            
+                                            //HOW TO DISTINGUISH FOR WHICH SENDER IS THE HEADER  INCOMPLETE MESSAGE ? 
+                                            if(firstLine.matches("RECEIVED ([a-zA-Z0-9]+)") && secondLine.matches("")){
+                                                // pattern = new Pattern.compile("RECEIVED ([a-zA-Z0-9]+)");
+                                                // matcher = pattern.matcher(firstLine);
+                                                
+                                                output_to_client.writeBytes("SENT "+receipient_username+"\n\n");
+                                            }
+                                            else if(firstLine.matches("ERROR 103 Header incomplete") && secondLine.matches("")){
+                                                
+                                                output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
+                                                System.out.println("ERROR 102 Unable to send\n\n");
+                                            }
+                                            else{
+                                                
+                                                output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
+                                                System.out.println("ERROR 102 Unable to send\n\n");
+                                            }
+                                        
+                                        } 
+
+                            }
+                            else{
                                 output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
                                 System.out.println("ERROR 102 Unable to send\n\n");
                                 continue;
+
                             }
-
-                            Socket receipient_socket = receiving_ports_map.get(receipient_username);
-                            synchronized(receipient_socket){
-                                
-                                String forward_string = String.format("FORWARD %s\nContent-length: %d\n\n%s",sender_username,messageLength,new String(message));
-                                System.out.println("\n"+forward_string);
-
-                                BufferedReader input_from_receipient = (socket_streams.get(receipient_socket)).getKey();
-                                DataOutputStream output_to_receipient = (socket_streams.get(receipient_socket)).getValue();
-                                output_to_receipient.writeBytes(forward_string);
-                                //sent data to reciepient
-
-
-                                firstLine = input_from_receipient.readLine();
-                                System.out.println(firstLine);
-                                secondLine = input_from_receipient.readLine();
-                                System.out.println(secondLine);
-                                
-                                //HOW TO DISTINGUISH FOR WHICH SENDER IS THE HEADER  INCOMPLETE MESSAGE ? 
-                                if(firstLine.matches("RECEIVED ([a-zA-Z0-9]+)") && secondLine.matches("")){
-                                    // pattern = new Pattern.compile("RECEIVED ([a-zA-Z0-9]+)");
-                                    // matcher = pattern.matcher(firstLine);
-                                    
-                                    output_to_client.writeBytes("SENT "+receipient_username+"\n\n");
-                                }
-                                else if(firstLine.matches("ERROR 103 Header incomplete") && secondLine.matches("")){
-                                    
-                                    output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
-                                    System.out.println("ERROR 102 Unable to send\n\n");
-                                }
-                                else{
-                                    
-                                    output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
-                                    System.out.println("ERROR 102 Unable to send\n\n");
-                                }
-                            
-                            } 
-
-
                         }
                         else if(!secondLine.matches(content_length_header)){//case when content length header is missing
                             output_to_client.writeBytes("ERROR 103 Header incomplete\n\n");
@@ -319,6 +333,9 @@ class ClientHandler implements Runnable{
 
             }
             else{
+                // System.out.println("Began server_sending thread. (client recv sockets)");
+                // System.out.println(requestHeader);
+                // System.out.println(nextline);
                 if(requestHeader.matches(regToRecv) && nextline.matches(content_length_header)){
                     Pattern pattern = Pattern.compile(regToRecv);
                     Matcher matcher = pattern.matcher(requestHeader);
@@ -351,7 +368,7 @@ class ClientHandler implements Runnable{
                     input_from_client.read(message,0,messageLength);
                     if(receiving_ports_map.containsKey(receiver_username)){
                             output_to_client.writeBytes("ERROR 101 No user registered\n\n");        
-                            System.out.println("ERROR 101 No user registered\n\n");
+                            System.out.println("ERROR 101 No user registered:1\n\n");
                             try{clientSocket.close();}
                             catch(Exception err){;}
                             try{socket_streams.remove(clientSocket);}
@@ -373,7 +390,7 @@ class ClientHandler implements Runnable{
                 }
                 else{
                     output_to_client.writeBytes("ERROR 101 No user registered\n\n");        
-                    System.out.println("ERROR 101 No user registered\n\n");
+                    System.out.println("ERROR 101 No user registered:2\n\n");
                     try{clientSocket.close();}
                     catch(Exception err){;}
                     try{socket_streams.remove(clientSocket);}
@@ -445,7 +462,7 @@ class ClientHandler implements Runnable{
     }
 }
 
-public class Server_enc{
+public class EncryptedSignatureServer{
 
     private ServerSocket serv_receiver_socket = null;
     private ServerSocket serv_sender_socket = null;
@@ -482,7 +499,7 @@ public class Server_enc{
         }
     }
 
-    public Server_enc(int receiver_port,int sender_port)throws IOException,InterruptedException{
+    public EncryptedSignatureServer(int receiver_port,int sender_port)throws IOException,InterruptedException{
         serv_receiver_socket = new ServerSocket(receiver_port);//server listens on this port
         serv_sender_socket = new ServerSocket(sender_port);// server sends from this port
         ConcurrentHashMap <String,Socket> receiving_ports_map = new ConcurrentHashMap<String,Socket>();//maps usernames to their receiving sockets
@@ -510,7 +527,7 @@ public class Server_enc{
     }
     public static void main(String args[])throws IOException,InterruptedException{
         
-        new Server_enc(6000,6100);
+        new EncryptedSignatureServer(6000,6100);
         
     }
 }
