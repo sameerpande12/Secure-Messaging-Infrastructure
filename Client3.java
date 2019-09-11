@@ -719,7 +719,7 @@ public class Client3 {
 
     public static void main(String[] args) {
     
-        Client client = new Client(args[0],args[1]);
+        Client3 client = new Client3(args[0],args[1]);
 
         boolean a = client.openSendSocket(args[1]);
         if(a == false)
