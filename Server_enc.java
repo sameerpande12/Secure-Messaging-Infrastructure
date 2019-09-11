@@ -167,6 +167,8 @@ class ClientHandler implements Runnable{
                             System.out.println("ERROR 103 Header incomplete\n\n");
                             try{clientSocket.close();}
                             catch(Exception err){;}
+                            try{public_key_map.remove(sender_username);}
+                            catch(Exception err){;}
                             try{socket_streams.remove(clientSocket);}
                             catch(Exception err){;}
                             try{sending_ports_map.remove(sender_username);}
@@ -236,6 +238,8 @@ class ClientHandler implements Runnable{
                         System.out.println("ERROR 103 Header incomplete\n\n");
                         try{clientSocket.close();}
                         catch(Exception err){;}
+                        try{public_key_map.remove(sender_username);}
+                        catch(Exception err){;}
                         try{socket_streams.remove(clientSocket);}
                         catch(Exception err){;}
                         try{sending_ports_map.remove(sender_username);}
@@ -249,6 +253,8 @@ class ClientHandler implements Runnable{
                         output_to_client.writeBytes("ERROR 103 Header incomplete\n\n");
                         System.out.println("ERROR 103 Header incomplete\n\n");
                         try{clientSocket.close();}
+                        catch(Exception err){;}
+                        try{public_key_map.remove(sender_username);}
                         catch(Exception err){;}
                         try{socket_streams.remove(clientSocket);}
                         catch(Exception err){;}
@@ -266,12 +272,37 @@ class ClientHandler implements Runnable{
 
             }
             else{
-                if(requestHeader.matches(regToRecv) && nextline.matches("")){
+                if(requestHeader.matches(regToRecv) && nextline.matches(content_length_header)){
                     Pattern pattern = Pattern.compile(regToRecv);
                     Matcher matcher = pattern.matcher(requestHeader);
-                    if(matcher.find()){
-                        String username = matcher.group(1);
-                        if(receiving_ports_map.containsKey(username)){
+                    
+                    String receiver_username = matcher.group(1);
+                    
+                    pattern = Pattern.compile(content_length_header);
+                    matcher = pattern.matcher(nextline);
+                    String newline = input_from_client.readLine();
+                    int messageLength;
+                    if(matcher.find() && newline.matches("")){
+                        messageLength = Integer.parseInt(matcher.group(1));
+                    }
+                    else{
+                        output_to_client.writeBytes("ERROR 103 Header incomplete\n\n");
+                        System.out.println("ERROR 103 Header incomplete\n\n");
+                        try{clientSocket.close();}
+                        catch(Exception err){;}
+                        try{public_key_map.remove(receiver_username);}
+                        catch(Exception err){;}
+                        try{socket_streams.remove(clientSocket);}
+                        catch(Exception err){;}
+                        try{sending_ports_map.remove(receiver_username);}
+                        catch(Exception err){;}
+                        try{receiving_ports_map.remove(receiver_username);}
+                        catch(Exception err){;}
+                        return;   
+                    }
+                    char [] message = new char[messageLength];
+                    input_from_client.read(message,0,messageLength);
+                    if(receiving_ports_map.containsKey(receiver_username)){
                             output_to_client.writeBytes("ERROR 101 No user registered\n\n");        
                             System.out.println("ERROR 101 No user registered\n\n");
                             try{clientSocket.close();}
@@ -279,26 +310,11 @@ class ClientHandler implements Runnable{
                             try{socket_streams.remove(clientSocket);}
                             catch(Exception err){;}
                             return;
-                        }
-                            receiving_ports_map.put(username,clientSocket);
-                            output_to_client.writeBytes("REGISTERED TORECV "+username+"\n\n");
-                            System.out.println("REGISTERED TORECV "+username+"\n\n");
-                        // System.out.println("OK");
+                        
                     }
-                    else{
-                        if(requestHeader.matches("REGISTER TORECV (.*?)") && !requestHeader.matches(regToRecv)){
-                            output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
-                            System.out.println("ERROR 100 Malformed username\n\n");
-                        }
-                        else{
-                            output_to_client.writeBytes("ERROR 101 No user registered\n\n");        
-                            System.out.println("ERROR 101 No user registered\n\n");
-                        }    
-                        try{clientSocket.close();}
-                        catch(Exception err){;}
-                        try{socket_streams.remove(clientSocket);}
-                        catch(Exception err){;}
-                    }
+                    receiving_ports_map.put(receiver_username,clientSocket);
+                    public_key_map.put(receiver_username,new String(message));
+                    output_to_client.writeBytes("REGISTERED TORECV "+receiver_username+"\n\n");   
                 }
                 else if(requestHeader.matches("REGISTER TORECV (.*?)") && !requestHeader.matches(regToRecv)){
                     output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
@@ -309,7 +325,7 @@ class ClientHandler implements Runnable{
                     catch(Exception err){;}
                 }
                 else{
-                    output_to_client.writeBytes("ERROR 101 No user registered\n\n");
+                    output_to_client.writeBytes("ERROR 101 No user registered\n\n");        
                     System.out.println("ERROR 101 No user registered\n\n");
                     try{clientSocket.close();}
                     catch(Exception err){;}
@@ -317,8 +333,59 @@ class ClientHandler implements Runnable{
                     catch(Exception err){;}
 
                 }
+            //     if(requestHeader.matches(regToRecv) && nextline.matches("")){
+            //         Pattern pattern = Pattern.compile(regToRecv);
+            //         Matcher matcher = pattern.matcher(requestHeader);
+            //         if(matcher.find()){
+            //             String username = matcher.group(1);
+            //             if(receiving_ports_map.containsKey(username)){
+            //                 output_to_client.writeBytes("ERROR 101 No user registered\n\n");        
+            //                 System.out.println("ERROR 101 No user registered\n\n");
+            //                 try{clientSocket.close();}
+            //                 catch(Exception err){;}
+            //                 try{socket_streams.remove(clientSocket);}
+            //                 catch(Exception err){;}
+            //                 return;
+            //             }
+            //                 receiving_ports_map.put(username,clientSocket);
+            //                 output_to_client.writeBytes("REGISTERED TORECV "+username+"\n\n");
+            //                 System.out.println("REGISTERED TORECV "+username+"\n\n");
+            //             // System.out.println("OK");
+            //         }
+            //         else{
+            //             if(requestHeader.matches("REGISTER TORECV (.*?)") && !requestHeader.matches(regToRecv)){
+            //                 output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
+            //                 System.out.println("ERROR 100 Malformed username\n\n");
+            //             }
+            //             else{
+            //                 output_to_client.writeBytes("ERROR 101 No user registered\n\n");        
+            //                 System.out.println("ERROR 101 No user registered\n\n");
+            //             }    
+            //             try{clientSocket.close();}
+            //             catch(Exception err){;}
+            //             try{socket_streams.remove(clientSocket);}
+            //             catch(Exception err){;}
+            //         }
+            //     }
+            //     else if(requestHeader.matches("REGISTER TORECV (.*?)") && !requestHeader.matches(regToRecv)){
+            //         output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
+            //         System.out.println("ERROR 100 Malformed username\n\n");
+            //         try{clientSocket.close();}
+            //         catch(Exception err){;}
+            //         try{socket_streams.remove(clientSocket);}
+            //         catch(Exception err){;}
+            //     }
+            //     else{
+            //         output_to_client.writeBytes("ERROR 101 No user registered\n\n");
+            //         System.out.println("ERROR 101 No user registered\n\n");
+            //         try{clientSocket.close();}
+            //         catch(Exception err){;}
+            //         try{socket_streams.remove(clientSocket);}
+            //         catch(Exception err){;}
+
+            //     }
                 
-                System.out.println("Closing the server_sending thread");
+            //     System.out.println("Closing the server_sending thread");
             }
         }
         catch(IOException e){
@@ -331,7 +398,7 @@ class ClientHandler implements Runnable{
     }
 }
 
-public class Server{
+public class Server_enc{
 
     private ServerSocket serv_receiver_socket = null;
     private ServerSocket serv_sender_socket = null;
