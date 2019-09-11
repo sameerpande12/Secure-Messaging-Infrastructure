@@ -450,7 +450,8 @@ public class EncryptedClient {
                 else
                     correct = false;
             // System.out.println("Message Length :"+Integer.toString(length));
-                input = inFromSendServer.readLine();
+                
+                if(correct)input = inFromSendServer.readLine();
 
                 if(correct == false)
                 {
@@ -461,11 +462,12 @@ public class EncryptedClient {
                     openSendSocket(this.ServerIP);
                     continue;
                 }
-                // else{
-                //     output = "FETCH ACK\n\n";
-                //     toSendServerStream.writebytes(output);
-                //     System.out.println("FETCH ACK");
-                // }
+                else{
+                    output = "FETCH ACK\n\n";
+                    toSendServerStream.writeBytes(output);
+                    System.out.println(output);
+                    System.out.println("FETCH ACK");
+                }
 
                 char[] msg_buf= new char[length];
                 int contentLength = inFromSendServer.read(msg_buf,0,length);
