@@ -629,7 +629,7 @@ public class EncryptedClient {
 
     public static void main(String[] args) {
     
-        Client client = new Client(args[0],args[1]);
+        EncryptedClient client = new EncryptedClient(args[0],args[1]);
 
         boolean a = client.openSendSocket(args[1]);
         if(a == false)
