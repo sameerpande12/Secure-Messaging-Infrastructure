@@ -49,7 +49,7 @@ class ClientHandler implements Runnable{
             String requestHeader = input_from_client.readLine();
             System.out.println("~"+requestHeader);
             if(!(requestHeader.matches(regToSend) || requestHeader.matches(regToRecv))){
-                if(requestHeader.matches("REGISTER TOSEND (.*?)") && !requestHeader.matches(regToSend)){
+                if((requestHeader.matches("REGISTER TOSEND (.*?)") && !requestHeader.matches(regToSend)) || (requestHeader.matches("REGISTER TORECV (.*?)") && !requestHeader.matches(regToRecv))){
                     output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
                     System.out.println("ERROR 100 Malformed username\n\n");
                 }
