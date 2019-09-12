@@ -21,31 +21,59 @@ class Cryptography{
 
     private static final String ALGORITHM = "RSA";
 
-    public static byte[] encrypt(byte[] publicKey, byte[] inputData)
+    public static byte[] encrypt(byte[] publicKey, byte[] inputData, boolean reverse)
             throws Exception {
-        PublicKey key = KeyFactory.getInstance(ALGORITHM)
-                .generatePublic(new X509EncodedKeySpec(publicKey));
+        if(reverse == false)
+        {
+            PublicKey key = KeyFactory.getInstance(ALGORITHM)
+                    .generatePublic(new X509EncodedKeySpec(publicKey));
 
-        Cipher cipher = Cipher.getInstance(ALGORITHM);
-        cipher.init(Cipher.ENCRYPT_MODE, key);
+            Cipher cipher = Cipher.getInstance(ALGORITHM);
+            cipher.init(Cipher.ENCRYPT_MODE, key);
 
-        byte[] encryptedBytes = cipher.doFinal(inputData);
+            byte[] encryptedBytes = cipher.doFinal(inputData);
 
-        return encryptedBytes;
+            return encryptedBytes;
+        }
+        else
+        {
+            PrivateKey key = KeyFactory.getInstance(ALGORITHM)
+                .generatePrivate(new X509EncodedKeySpec(publicKey));
+
+            Cipher cipher = Cipher.getInstance(ALGORITHM);
+            cipher.init(Cipher.ENCRYPT_MODE, key);
+
+            byte[] encryptedBytes = cipher.doFinal(inputData);
+
+            return encryptedBytes;
+        }
     }
 
-    public static byte[] decrypt(byte[] privateKey, byte[] inputData)
+    public static byte[] decrypt(byte[] privateKey, byte[] inputData,boolean reverse)
             throws Exception {
+        if(reverse == false)
+        {
+            PrivateKey key = KeyFactory.getInstance(ALGORITHM)
+                    .generatePrivate(new PKCS8EncodedKeySpec(privateKey));
 
-        PrivateKey key = KeyFactory.getInstance(ALGORITHM)
-                .generatePrivate(new PKCS8EncodedKeySpec(privateKey));
+            Cipher cipher = Cipher.getInstance(ALGORITHM);
+            cipher.init(Cipher.DECRYPT_MODE, key);
 
-        Cipher cipher = Cipher.getInstance(ALGORITHM);
-        cipher.init(Cipher.DECRYPT_MODE, key);
+            byte[] decryptedBytes = cipher.doFinal(inputData);
 
-        byte[] decryptedBytes = cipher.doFinal(inputData);
+            return decryptedBytes;
+        }
+        else{
+            PublicKey key = KeyFactory.getInstance(ALGORITHM)
+                    .generatePublic(new PKCS8EncodedKeySpec(privateKey));
 
-        return decryptedBytes;
+            Cipher cipher = Cipher.getInstance(ALGORITHM);
+            cipher.init(Cipher.DECRYPT_MODE, key);
+
+            byte[] decryptedBytes = cipher.doFinal(inputData);
+
+            return decryptedBytes;
+        }
     }
 
     public static KeyPair generateKeyPair()
@@ -462,11 +490,6 @@ public class Client3 {
                     openSendSocket(this.ServerIP);
                     continue;
                 }
-                else{
-                    output = "FETCH ACK\n\n";
-                    toSendServerStream.writeBytes(output);
-                    System.out.println("FETCH ACK");
-                }
 
                 char[] msg_buf= new char[length];
                 int contentLength = inFromSendServer.read(msg_buf,0,length);
@@ -477,12 +500,12 @@ public class Client3 {
                 //byte[] encryptedData = 
 
 
-                String encryptedData = java.util.Base64.getEncoder().encodeToString(Cryptography.encrypt(receiverPublicKey,array[1].getBytes()));
+                String encryptedData = java.util.Base64.getEncoder().encodeToString(Cryptography.encrypt(receiverPublicKey,array[1].getBytes(),false));
                  
 
                 MessageDigest md = MessageDigest.getInstance("SHA-256");
-                byte[] shaBytes = md.digest(Cryptography.encrypt(receiverPublicKey,array[1].getBytes()));
-                String signature = java.util.Base64.getEncoder().encodeToString(Cryptography.encrypt(this.privateKey,shaBytes));
+                byte[] shaBytes = md.digest(Cryptography.encrypt(receiverPublicKey,array[1].getBytes(),false));
+                String signature = java.util.Base64.getEncoder().encodeToString(Cryptography.encrypt(this.privateKey,shaBytes,true));
 
 
                 output = "SEND " + to_username +"\nContent-length: "+Integer.toString(encryptedData.length())
@@ -604,7 +627,7 @@ public class Client3 {
             // for(int i =0;i<length;i++)
                 // message = message +inFromReceiveServer.read();
             //String = encryptedData
-            byte[] decryptedData = Cryptography.decrypt(this.privateKey, java.util.Base64.getDecoder().decode(messageString));
+            byte[] decryptedData = Cryptography.decrypt(this.privateKey, java.util.Base64.getDecoder().decode(messageString),false);
             String message = new String(decryptedData);
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             byte[] shaBytes = md.digest(java.util.Base64.getDecoder().decode(messageString));
@@ -642,7 +665,7 @@ public class Client3 {
             else
                 correct = false;
         // System.out.println("Message Length :"+Integer.toString(length));
-            if(correct)input = inFromReceiveServer.readLine();
+            input = inFromReceiveServer.readLine();
 
             if(correct == false)
             {
@@ -653,19 +676,13 @@ public class Client3 {
                 openReceiveSocket(this.ServerIP);
                 continue;
             }
-            else{
-                output="FETCH ACK\n\n";
-                toReceiveServerStream.writeBytes(output);
-                System.out.println(output);
-                System.out.println("FETCH ACK");
-            }
 
             msg_buf= new char[length];
             contentLength = inFromReceiveServer.read(msg_buf,0,length);
             String senderPublicKeyString = new String(msg_buf);
 
             byte[] senderPublicKey = java.util.Base64.getDecoder().decode(senderPublicKeyString);
-            byte[] KpubHash = Cryptography.decrypt(senderPublicKey,sigbyte);
+            byte[] KpubHash = Cryptography.decrypt(senderPublicKey,sigbyte,true);
 
             System.out.println(KpubHash);
             System.out.println(shaBytes);
@@ -730,7 +747,7 @@ public class Client3 {
 
     public static void main(String[] args) {
     
-        Client3 client = new Client3(args[0],args[1]);
+        Client client = new Client(args[0],args[1]);
 
         boolean a = client.openSendSocket(args[1]);
         if(a == false)
