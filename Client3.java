@@ -464,6 +464,19 @@ public class Client3 {
 
                 int length = 0;
 
+                Pattern pattern1 = Pattern.compile("FETCHEDKEY (.*?)$");
+                Matcher matcher1 = pattern1.matcher(input);
+                if (!matcher1.find()){
+                    System.out.println("Unable to Send!");
+                    input = inFromSendServer.readLine();
+                    output = "ERROR 103 Header incomplete\n\n";
+                    System.out.println("Error with Server");
+                    toSendServerStream.writeBytes(output);
+                    SendSocket.close();
+                    openSendSocket(this.ServerIP);
+                    continue;
+                }
+
                 Pattern pattern = Pattern.compile("FETCHEDKEY (.*?)$");
                 Matcher matcher = pattern.matcher(input);
                 if (matcher.find())
@@ -590,7 +603,7 @@ public class Client3 {
                 ReceiveSocket.close();
                 break;
             }
-
+            System.out.println(input);
             pattern = Pattern.compile("FORWARD (.*?)$");
             matcher = pattern.matcher(input);
             if (matcher.find())
@@ -599,6 +612,7 @@ public class Client3 {
                 correct = false;
 
             input = inFromReceiveServer.readLine();
+            System.out.println(input);
             pattern = Pattern.compile("Content-length: (.*?)$");
             matcher = pattern.matcher(input);
             if (matcher.find())
@@ -608,6 +622,7 @@ public class Client3 {
 
             String signature="";
             input = inFromReceiveServer.readLine();
+            System.out.println(input);
             pattern = Pattern.compile("Signature: (.*?)$");
             matcher = pattern.matcher(input);
             if (matcher.find())
@@ -618,6 +633,7 @@ public class Client3 {
 
             // System.out.println("Message Length :"+Integer.toString(length));
             input = inFromReceiveServer.readLine();
+            System.out.println(input);
 
             if(correct == false)
             {
@@ -631,6 +647,7 @@ public class Client3 {
             char[] msg_buf = new char[length];
             int contentLength = inFromReceiveServer.read(msg_buf,0,length);
             String messageString = new String(msg_buf);
+            System.out.println("message string : "+messageString);
             
             // for(int i =0;i<length;i++)
                 // message = message +inFromReceiveServer.read();
@@ -641,6 +658,7 @@ public class Client3 {
             byte[] shaBytes = md.digest(java.util.Base64.getDecoder().decode(messageString));
 
             String output = "FETCHKEY " + fromusername+"\n\n";
+            System.out.println("Sending :"+output);
                 
             while(true){
                 try{
