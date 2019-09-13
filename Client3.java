@@ -38,7 +38,7 @@ class Cryptography{
         else
         {
             PrivateKey key = KeyFactory.getInstance(ALGORITHM)
-                .generatePrivate(new X509EncodedKeySpec(publicKey));
+                .generatePrivate(new PKCS8EncodedKeySpec(publicKey));
 
             Cipher cipher = Cipher.getInstance(ALGORITHM);
             cipher.init(Cipher.ENCRYPT_MODE, key);
@@ -65,7 +65,7 @@ class Cryptography{
         }
         else{
             PublicKey key = KeyFactory.getInstance(ALGORITHM)
-                    .generatePublic(new PKCS8EncodedKeySpec(privateKey));
+                    .generatePublic(new X509EncodedKeySpec(privateKey));
 
             Cipher cipher = Cipher.getInstance(ALGORITHM);
             cipher.init(Cipher.DECRYPT_MODE, key);
@@ -480,7 +480,7 @@ public class Client3 {
                     correct = false;
             // System.out.println("Message Length :"+Integer.toString(length));
                 input = inFromSendServer.readLine();
-
+                
                 if(correct == false)
                 {
                     output = "ERROR 103 Header incomplete\n\n";
@@ -490,11 +490,13 @@ public class Client3 {
                     openSendSocket(this.ServerIP);
                     continue;
                 }
+                
 
                 char[] msg_buf= new char[length];
                 int contentLength = inFromSendServer.read(msg_buf,0,length);
                 String receiverPublicKeyString = new String(msg_buf);
-
+                toSendServerStream.writeBytes("FETCH ACK\n\n");
+                
                 byte[] receiverPublicKey = java.util.Base64.getDecoder().decode(receiverPublicKeyString);
 
                 //byte[] encryptedData = 
@@ -505,8 +507,9 @@ public class Client3 {
 
                 MessageDigest md = MessageDigest.getInstance("SHA-256");
                 byte[] shaBytes = md.digest(Cryptography.encrypt(receiverPublicKey,array[1].getBytes(),false));
+                System.out.println("ReachedUp");
                 String signature = java.util.Base64.getEncoder().encodeToString(Cryptography.encrypt(this.privateKey,shaBytes,true));
-
+                
 
                 output = "SEND " + to_username +"\nContent-length: "+Integer.toString(encryptedData.length())
                                     +"\nSignature: " + signature 
@@ -514,21 +517,26 @@ public class Client3 {
                                     //+array[1];
                 //System.out.println(output);
                 //System.out.print(array[1]);
-                
+
                 while(true){
                     try{
                         toSendServerStream.writeBytes(output);
+                        System.out.println(output);
                         //toSendServerStream.write(encryptedData,0,encryptedData.length);
                         break; 
                     }
                     catch(Exception e)
                     {
+                        System.out.println("AAH");
                         openSendSocket(this.ServerIP);
                     }
                 }
             //was throwing error since username was null and username.equals was called
                 String response = inFromSendServer.readLine();
+                System.out.println(response);
+                
                 String newline = inFromSendServer.readLine();
+                System.out.println(newline);
                 pattern = Pattern.compile("SENT (.*?)$");
                 matcher = pattern.matcher(response);
                 if (matcher.find())
@@ -646,12 +654,14 @@ public class Client3 {
             }
 
             input = inFromReceiveServer.readLine();
+            System.out.println("Her"+input);
             correct = true;
 
             length = 0;
 
             pattern = Pattern.compile("FETCHEDKEY (.*?)$");
             matcher = pattern.matcher(input);
+            System.out.println("WritingInput"+input);
             if (matcher.find())
                 fromusername = matcher.group(1);
             else
@@ -666,7 +676,8 @@ public class Client3 {
                 correct = false;
         // System.out.println("Message Length :"+Integer.toString(length));
             input = inFromReceiveServer.readLine();
-
+            System.out.println("Writing"+length);
+            System.out.println("Writing"+input);
             if(correct == false)
             {
                 output = "ERROR 103 Header incomplete\n\n";
@@ -676,11 +687,12 @@ public class Client3 {
                 openReceiveSocket(this.ServerIP);
                 continue;
             }
-
+            System.out.println("Writing");
+            toReceiveServerStream.writeBytes("FETCH ACK\n\n");
             msg_buf= new char[length];
             contentLength = inFromReceiveServer.read(msg_buf,0,length);
             String senderPublicKeyString = new String(msg_buf);
-
+            
             byte[] senderPublicKey = java.util.Base64.getDecoder().decode(senderPublicKeyString);
             byte[] KpubHash = Cryptography.decrypt(senderPublicKey,sigbyte,true);
 
@@ -747,7 +759,7 @@ public class Client3 {
 
     public static void main(String[] args) {
     
-        Client client = new Client(args[0],args[1]);
+        Client3 client = new Client3(args[0],args[1]);
 
         boolean a = client.openSendSocket(args[1]);
         if(a == false)
@@ -758,6 +770,7 @@ public class Client3 {
         a = client.openReceiveSocket(args[1]);
         if(a == false)
             return;
+        
         //a = client.registerToReceive(args[0]);
         //if(a == false)
         //    return;
