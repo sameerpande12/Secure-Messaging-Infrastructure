@@ -21,6 +21,7 @@ class ClientHandler implements Runnable{
     private ConcurrentHashMap<String,Socket> receiving_ports_map;
     private ConcurrentHashMap<String,Socket> sending_ports_map;
     private ConcurrentHashMap<String,String> public_key_map;
+    private String clientUserName;
     private ConcurrentHashMap<Socket,AbstractMap.SimpleEntry<BufferedReader,DataOutputStream>> socket_streams;
     public ClientHandler(Socket inputSocket,boolean isReceiver,ConcurrentHashMap<String,Socket>receiving_ports_map,ConcurrentHashMap<String,Socket>sending_ports_map,ConcurrentHashMap<Socket,AbstractMap.SimpleEntry<BufferedReader,DataOutputStream>>socket_streams,ConcurrentHashMap<String,String>public_key_map){
         this.clientSocket = inputSocket;
@@ -78,6 +79,7 @@ class ClientHandler implements Runnable{
                     if(matcher.find()){
                         String username = matcher.group(1);
                         sender_username = username;
+                        clientUserName = username;
                         
                         if(sending_ports_map.containsKey(sender_username)){
                             try{clientSocket.close();}
@@ -127,122 +129,211 @@ class ClientHandler implements Runnable{
                 }
                 //done registration or socket closed till here;
                 while(true){
-                    String firstLine = input_from_client.readLine();
-                    System.out.println(firstLine);
-                    if(!receiving_ports_map.containsKey(sender_username)){
-                        output_to_client.writeBytes("ERROR 101 No user registered\n\n");
-                        System.out.println("ERROR 101 No user registered:97\n\n");
-                        continue;
-                    }
-
-                    String secondLine = input_from_client.readLine();
-                    System.out.println(secondLine);
-                    if(firstLine.matches("FETCHKEY (.*?)")){
-                        if(firstLine.matches(fetch_header) && secondLine.matches("")){
-                            Pattern fpattern = Pattern.compile(fetch_header);
-                            Matcher fmatcher = fpattern.matcher(firstLine);
-
-                            if(fmatcher.find()){
-                                
-                        
-                                String requested_username = fmatcher.group(1);
-                                
-                                String public_key;
-                                if(public_key_map.containsKey(requested_username)){
-                                    public_key = public_key_map.get(requested_username);
-                                    // System.out.println("public_key:"+public_key);
-                                    String fetched_message = "FETCHEDKEY "+requested_username+"\nContent-length: "+Integer.toString(public_key.length()) +"\n\n"+public_key;
-                                    // System.out.println(fetched_message);
-                                    output_to_client.writeBytes(fetched_message);
-                                }
-                                else{
-                                    output_to_client.writeBytes("ERROR 101 No user registered\n\n");        
-                                    System.out.println("ERROR 101 No user registered:96\n\n");
-                                    // continue;
-                                }
-                                
-                            }
-                            else{
-                                output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
-                                System.out.println("ERROR 102 Unable to send\n\n");
-                                // continue;
-                            }
-                        }
-
-                        else if(firstLine.matches("FETCHKEY (.*?)")){
-                            output_to_client.writeBytes("ERROR 101 No user registered\n\n");        
-                            System.out.println("ERROR 101 No user registered:95\n\n");
-                            // continue;
-                            // to_continue=true;
-                        }
-                        else if(!secondLine.matches("") && firstLine.matches(fetch_header)){
-                            output_to_client.writeBytes("ERROR 103 Header incomplete\n\n");
-                            System.out.println("ERROR 103 Header incomplete\n\n");
-                            // continue;
-                            // to_continue = true;
-                        }
-                        else{
-
-                            output_to_client.writeBytes("ERROR 103 Header incomplete\n\n");
-                            System.out.println("ERROR 103 Header incomplete\n\n");
-                            // continue;
-                            // to_continue = true;
-                        }
-
-                        String fetch_ack = input_from_client.readLine();
-                        System.out.println("~"+fetch_ack);
-                        String tempString = input_from_client.readLine();
-                        System.out.println("~"+tempString);
-                        if(fetch_ack.matches("FETCH ACK")){
+                    try
+                    {
+                        String firstLine = input_from_client.readLine();
+                        System.out.println(firstLine);
+                        if(!receiving_ports_map.containsKey(sender_username)){
+                            output_to_client.writeBytes("ERROR 101 No user registered\n\n");
+                            System.out.println("ERROR 101 No user registered:97\n\n");
                             continue;
                         }
-                        else{
-                                try{clientSocket.close();}
-                                catch(Exception err){;}
-                                // try{public_key_map.remove(sender_username);}No re-registraction for receiving port hence not to remove it
-                                // catch(Exception err){;}
-                                
-                                try{socket_streams.remove(clientSocket);}
-                                catch(Exception err){;}
-                                 try{sending_ports_map.remove(sender_username);}
-                                catch(Exception err){;}
-                                // try{receiving_ports_map.remove(sender_username);}No re-registration for receiving port done
-                                // catch(Exception err){;}
-                                return;
-                        }
 
+                        String secondLine = input_from_client.readLine();
+                        System.out.println(secondLine);
+                        if(firstLine.matches("FETCHKEY (.*?)")){
+                            if(firstLine.matches(fetch_header) && secondLine.matches("")){
+                                Pattern fpattern = Pattern.compile(fetch_header);
+                                Matcher fmatcher = fpattern.matcher(firstLine);
 
-                        // if(to_continue)continue;
-                    }
-                    else if(firstLine.matches("SEND (.*?)")){
-                        if(firstLine.matches(sendHeader)&& secondLine.matches(content_length_header)){
-                            Pattern pattern = Pattern.compile(sendHeader);
-                            Matcher matcher = pattern.matcher(firstLine);
-                            String receipient_username;
-                            if(matcher.find()){
-                                receipient_username = matcher.group(1);
-                                System.out.println("Receipient username: "+receipient_username);
+                                if(fmatcher.find()){
+                                    
+                            
+                                    String requested_username = fmatcher.group(1);
+                                    
+                                    String public_key;
+                                    if(public_key_map.containsKey(requested_username)){
+                                        public_key = public_key_map.get(requested_username);
+                                        // System.out.println("public_key:"+public_key);
+                                        String fetched_message = "FETCHEDKEY "+requested_username+"\nContent-length: "+Integer.toString(public_key.length()) +"\n\n"+public_key;
+                                        // System.out.println(fetched_message);
+                                        output_to_client.writeBytes(fetched_message);
+                                    }
+                                    else{
+                                        output_to_client.writeBytes("ERROR 101 No user registered\n\n");        
+                                        System.out.println("ERROR 101 No user registered:96\n\n");
+                                        // continue;
+                                    }
+                                    
+                                }
+                                else{
+                                    output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
+                                    System.out.println("ERROR 102 Unable to send\n\n");
+                                    // continue;
+                                }
+                            }
+
+                            else if(firstLine.matches("FETCHKEY (.*?)")){
+                                output_to_client.writeBytes("ERROR 101 No user registered\n\n");        
+                                System.out.println("ERROR 101 No user registered:95\n\n");
+                                // continue;
+                                // to_continue=true;
+                            }
+                            else if(!secondLine.matches("") && firstLine.matches(fetch_header)){
+                                output_to_client.writeBytes("ERROR 103 Header incomplete\n\n");
+                                System.out.println("ERROR 103 Header incomplete\n\n");
+                                // continue;
+                                // to_continue = true;
                             }
                             else{
-                                output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
-                                System.out.println("ERROR 102 Unable to send\n\n");
-                                // clientSocket.close();
-                                // System.out.println("Incomplete header");
-                                // return;
+
+                                output_to_client.writeBytes("ERROR 103 Header incomplete\n\n");
+                                System.out.println("ERROR 103 Header incomplete\n\n");
+                                // continue;
+                                // to_continue = true;
+                            }
+
+                            String fetch_ack = input_from_client.readLine();
+                            System.out.println("~"+fetch_ack);
+                            String tempString = input_from_client.readLine();
+                            System.out.println("~"+tempString);
+                            if(fetch_ack.matches("FETCH ACK")){
                                 continue;
                             }
-                            
-                            pattern = Pattern.compile(content_length_header);
-                            matcher = pattern.matcher(secondLine);
-                            System.out.println("waiting to reading newline");
-                            String newline = input_from_client.readLine();
-                            System.out.println("done reading newline");
-                            System.out.println("newline :"+newline);
-                            int messageLength;
-                            if(matcher.find() && newline.matches("")){
-                                messageLength = Integer.parseInt(matcher.group(1));
-                            }
                             else{
+                                    try{clientSocket.close();}
+                                    catch(Exception err){;}
+                                    // try{public_key_map.remove(sender_username);}No re-registraction for receiving port hence not to remove it
+                                    // catch(Exception err){;}
+                                    
+                                    try{socket_streams.remove(clientSocket);}
+                                    catch(Exception err){;}
+                                    try{sending_ports_map.remove(sender_username);}
+                                    catch(Exception err){;}
+                                    // try{receiving_ports_map.remove(sender_username);}No re-registration for receiving port done
+                                    // catch(Exception err){;}
+                                    return;
+                            }
+
+
+                            // if(to_continue)continue;
+                        }
+                        else if(firstLine.matches("SEND (.*?)")){
+                            if(firstLine.matches(sendHeader)&& secondLine.matches(content_length_header)){
+                                Pattern pattern = Pattern.compile(sendHeader);
+                                Matcher matcher = pattern.matcher(firstLine);
+                                String receipient_username;
+                                if(matcher.find()){
+                                    receipient_username = matcher.group(1);
+                                    System.out.println("Receipient username: "+receipient_username);
+                                }
+                                else{
+                                    output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
+                                    System.out.println("ERROR 102 Unable to send\n\n");
+                                    // clientSocket.close();
+                                    // System.out.println("Incomplete header");
+                                    // return;
+                                    continue;
+                                }
+                                
+                                pattern = Pattern.compile(content_length_header);
+                                matcher = pattern.matcher(secondLine);
+                                System.out.println("waiting to reading newline");
+                                String newline = input_from_client.readLine();
+                                System.out.println("done reading newline");
+                                System.out.println("newline :"+newline);
+                                int messageLength;
+                                if(matcher.find() && newline.matches("")){
+                                    messageLength = Integer.parseInt(matcher.group(1));
+                                }
+                                else{
+                                    output_to_client.writeBytes("ERROR 103 Header incomplete\n\n");
+                                    System.out.println("ERROR 103 Header incomplete\n\n");
+                                    try{clientSocket.close();}
+                                    catch(Exception err){;}
+                                    try{public_key_map.remove(sender_username);}
+                                    catch(Exception err){;}
+                                    try{socket_streams.remove(clientSocket);}
+                                    catch(Exception err){;}
+                                    try{sending_ports_map.remove(sender_username);}
+                                    catch(Exception err){;}
+                                    try{receiving_ports_map.remove(sender_username);}
+                                    catch(Exception err){;}
+                                    return;
+                                    
+                                }
+                                
+                                //begin reading message
+                                char [] message = new char[messageLength];
+                                System.out.println("Message length="+messageLength);
+                                
+                                // int num_chars_read = input_from_client.read(message, 0, messageLength);
+                                input_from_client.read(message, 0, messageLength);
+                                //num_chars_read must be same as message length; -1 when reading completely not specified
+                                //incorportate this later. now assume everything goes well
+                                // System.out.println(new String(message));
+                                if(!receiving_ports_map.containsKey(receipient_username)){
+                                    output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
+                                    System.out.println("ERROR 102 Unable to send\n\n");
+                                    continue;
+                                }
+
+                                Socket receipient_socket = receiving_ports_map.get(receipient_username);
+                                synchronized(receipient_socket){
+                                    
+                                    String forward_string = String.format("FORWARD %s\nContent-length: %d\n\n%s",sender_username,messageLength,new String(message));
+                                    System.out.println("\n"+forward_string);
+
+                                    BufferedReader input_from_receipient = (socket_streams.get(receipient_socket)).getKey();
+                                    DataOutputStream output_to_receipient = (socket_streams.get(receipient_socket)).getValue();
+                                    output_to_receipient.writeBytes(forward_string);
+                                    //sent data to reciepient
+
+
+                                    firstLine = input_from_receipient.readLine();
+                                    System.out.println(firstLine);
+                                    secondLine = input_from_receipient.readLine();
+                                    System.out.println(secondLine);
+                                    
+                                    //HOW TO DISTINGUISH FOR WHICH SENDER IS THE HEADER  INCOMPLETE MESSAGE ? 
+                                    if(firstLine.matches("RECEIVED ([a-zA-Z0-9]+)") && secondLine.matches("")){
+                                        // pattern = new Pattern.compile("RECEIVED ([a-zA-Z0-9]+)");
+                                        // matcher = pattern.matcher(firstLine);
+                                        
+                                        output_to_client.writeBytes("SENT "+receipient_username+"\n\n");
+                                    }
+                                    else if(firstLine.matches("ERROR 103 Header incomplete") && secondLine.matches("")){
+                                        
+                                        output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
+                                        System.out.println("ERROR 102 Unable to send\n\n");
+                                    }
+                                    else{
+                                        
+                                        output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
+                                        System.out.println("ERROR 102 Unable to send\n\n");
+                                    }
+                                
+                                } 
+
+
+                            }
+                            else if(!secondLine.matches(content_length_header)){//case when content length header is missing
+                                output_to_client.writeBytes("ERROR 103 Header incomplete\n\n");
+                                System.out.println("ERROR 103 Header incomplete\n\n");
+                                try{clientSocket.close();}
+                                catch(Exception err){;}
+                                try{public_key_map.remove(sender_username);}
+                                catch(Exception err){;}
+                                try{socket_streams.remove(clientSocket);}
+                                catch(Exception err){;}
+                                try{sending_ports_map.remove(sender_username);}
+                                catch(Exception err){;}
+                                try{receiving_ports_map.remove(sender_username);}
+                                catch(Exception err){;}
+                                return;
+                                    
+                            }
+                            else{//case when requestheader is out of format. not decided yet for this block. temporary for now
                                 output_to_client.writeBytes("ERROR 103 Header incomplete\n\n");
                                 System.out.println("ERROR 103 Header incomplete\n\n");
                                 try{clientSocket.close();}
@@ -258,135 +349,66 @@ class ClientHandler implements Runnable{
                                 return;
                                 
                             }
-                            
-                            //begin reading message
-                            char [] message = new char[messageLength];
-                            System.out.println("Message length="+messageLength);
-                            
-                            // int num_chars_read = input_from_client.read(message, 0, messageLength);
-                            input_from_client.read(message, 0, messageLength);
-                            //num_chars_read must be same as message length; -1 when reading completely not specified
-                            //incorportate this later. now assume everything goes well
-                            // System.out.println(new String(message));
-                            if(!receiving_ports_map.containsKey(receipient_username)){
-                                output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
-                                System.out.println("ERROR 102 Unable to send\n\n");
-                                continue;
-                            }
-
-                            Socket receipient_socket = receiving_ports_map.get(receipient_username);
-                            synchronized(receipient_socket){
-                                
-                                String forward_string = String.format("FORWARD %s\nContent-length: %d\n\n%s",sender_username,messageLength,new String(message));
-                                System.out.println("\n"+forward_string);
-
-                                BufferedReader input_from_receipient = (socket_streams.get(receipient_socket)).getKey();
-                                DataOutputStream output_to_receipient = (socket_streams.get(receipient_socket)).getValue();
-                                output_to_receipient.writeBytes(forward_string);
-                                //sent data to reciepient
-
-
-                                firstLine = input_from_receipient.readLine();
-                                System.out.println(firstLine);
-                                secondLine = input_from_receipient.readLine();
-                                System.out.println(secondLine);
-                                
-                                //HOW TO DISTINGUISH FOR WHICH SENDER IS THE HEADER  INCOMPLETE MESSAGE ? 
-                                if(firstLine.matches("RECEIVED ([a-zA-Z0-9]+)") && secondLine.matches("")){
-                                    // pattern = new Pattern.compile("RECEIVED ([a-zA-Z0-9]+)");
-                                    // matcher = pattern.matcher(firstLine);
-                                    
-                                    output_to_client.writeBytes("SENT "+receipient_username+"\n\n");
-                                }
-                                else if(firstLine.matches("ERROR 103 Header incomplete") && secondLine.matches("")){
-                                    
-                                    output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
-                                    System.out.println("ERROR 102 Unable to send\n\n");
+                        }
+                        else if(firstLine.matches("UNREGISTER (.*?)") && secondLine.matches("")){
+                            Pattern pattern = Pattern.compile("UNREGISTER ([a-zA-Z0-9]+)");
+                            Matcher matcher = pattern.matcher(firstLine);
+                            if(matcher.find()){
+                                String usernameToUnregister = matcher.group(1);
+                                if(usernameToUnregister.matches(sender_username)){
+                                    output_to_client.writeBytes("UNREGISTERED "+usernameToUnregister+"\n\n");    
+                                    System.out.println("UNREGISTERED "+usernameToUnregister+"\n\n");    
+                                    try{clientSocket.close();}
+                                    catch(Exception err){;}
+                                    try{public_key_map.remove(sender_username);}
+                                    catch(Exception err){;}
+                                    try{socket_streams.remove(clientSocket);}
+                                    catch(Exception err){;}
+                                    try{sending_ports_map.remove(sender_username);}
+                                    catch(Exception err){;}
+                                    try{receiving_ports_map.remove(sender_username);}
+                                    catch(Exception err){;}
+                                    return;   
                                 }
                                 else{
-                                    
-                                    output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
-                                    System.out.println("ERROR 102 Unable to send\n\n");
+                                    output_to_client.writeBytes("ERROR 200 You cannot unregister other user\n\n");
+                                    System.out.println("ERROR 200 You cannont unregister other user\n\n");
+                                    continue;
                                 }
-                            
-                            } 
-
-
-                        }
-                        else if(!secondLine.matches(content_length_header)){//case when content length header is missing
-                            output_to_client.writeBytes("ERROR 103 Header incomplete\n\n");
-                            System.out.println("ERROR 103 Header incomplete\n\n");
-                            try{clientSocket.close();}
-                            catch(Exception err){;}
-                            try{public_key_map.remove(sender_username);}
-                            catch(Exception err){;}
-                            try{socket_streams.remove(clientSocket);}
-                            catch(Exception err){;}
-                            try{sending_ports_map.remove(sender_username);}
-                            catch(Exception err){;}
-                            try{receiving_ports_map.remove(sender_username);}
-                            catch(Exception err){;}
-                            return;
-                                
-                        }
-                        else{//case when requestheader is out of format. not decided yet for this block. temporary for now
-                            output_to_client.writeBytes("ERROR 103 Header incomplete\n\n");
-                            System.out.println("ERROR 103 Header incomplete\n\n");
-                            try{clientSocket.close();}
-                            catch(Exception err){;}
-                            try{public_key_map.remove(sender_username);}
-                            catch(Exception err){;}
-                            try{socket_streams.remove(clientSocket);}
-                            catch(Exception err){;}
-                            try{sending_ports_map.remove(sender_username);}
-                            catch(Exception err){;}
-                            try{receiving_ports_map.remove(sender_username);}
-                            catch(Exception err){;}
-                            return;
-                            
-                        }
-                    }
-                    else if(firstLine.matches("UNREGISTER (.*?)") && secondLine.matches("")){
-                        Pattern pattern = Pattern.compile("UNREGISTER ([a-zA-Z0-9]+)");
-                        Matcher matcher = pattern.matcher(firstLine);
-                        if(matcher.find()){
-                            String usernameToUnregister = matcher.group(1);
-                            if(usernameToUnregister.matches(sender_username)){
-                                output_to_client.writeBytes("UNREGISTERED "+usernameToUnregister+"\n\n");    
-                                System.out.println("UNREGISTERED "+usernameToUnregister+"\n\n");    
-                                try{clientSocket.close();}
-                                catch(Exception err){;}
-                                try{public_key_map.remove(sender_username);}
-                                catch(Exception err){;}
-                                try{socket_streams.remove(clientSocket);}
-                                catch(Exception err){;}
-                                try{sending_ports_map.remove(sender_username);}
-                                catch(Exception err){;}
-                                try{receiving_ports_map.remove(sender_username);}
-                                catch(Exception err){;}
-                                return;   
                             }
                             else{
-                                output_to_client.writeBytes("ERROR 200 You cannot unregister other user\n\n");
-                                System.out.println("ERROR 200 You cannont unregister other user\n\n");
+                                output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
+                                System.out.println("ERROR 100 Malformed username\n\n");
                                 continue;
+
                             }
                         }
                         else{
-                            output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
-                            System.out.println("ERROR 100 Malformed username\n\n");
+
+                            output_to_client.writeBytes("ERROR 103 Header incomplete\n\n");
+                            System.out.println("ERROR 103 Header incomplete\n\n");
                             continue;
 
                         }
                     }
-                    else{
+                    catch(Exception error){
+        
 
-                        output_to_client.writeBytes("ERROR 103 Header incomplete\n\n");
-                        System.out.println("ERROR 103 Header incomplete\n\n");
-                        continue;
-
+                        System.out.println("Ctrl C deregistration");
+                        try{clientSocket.close();}
+                        catch(Exception err){;}
+                        
+                        try{socket_streams.remove(clientSocket);}
+                        catch(Exception err){;}
+                        try{public_key_map.remove(clientUserName);}
+                        catch(Exception err){;}
+                        
+                        try{sending_ports_map.remove(clientUserName);}
+                        catch(Exception err){;}
+                        try{receiving_ports_map.remove(clientUserName);}
+                        catch(Exception err){;}
+                        return;
                     }
-                    
 
                     
                 }
@@ -402,7 +424,8 @@ class ClientHandler implements Runnable{
                     String receiver_username;
 
                     if(matcher.find()){
-                        receiver_username = matcher.group(1);                    
+                        receiver_username = matcher.group(1);
+                        clientUserName = receiver_username;                    
                         pattern = Pattern.compile(content_length_header);
                         matcher = pattern.matcher(nextline);
                         String newline = input_from_client.readLine();
@@ -467,66 +490,23 @@ class ClientHandler implements Runnable{
                     catch(Exception err){;}
 
                 }
-            //     if(requestHeader.matches(regToRecv) && nextline.matches("")){
-            //         Pattern pattern = Pattern.compile(regToRecv);
-            //         Matcher matcher = pattern.matcher(requestHeader);
-            //         if(matcher.find()){
-            //             String username = matcher.group(1);
-            //             if(receiving_ports_map.containsKey(username)){
-            //                 output_to_client.writeBytes("ERROR 101 No user registered\n\n");        
-            //                 System.out.println("ERROR 101 No user registered\n\n");
-            //                 try{clientSocket.close();}
-            //                 catch(Exception err){;}
-            //                 try{socket_streams.remove(clientSocket);}
-            //                 catch(Exception err){;}
-            //                 return;
-            //             }
-            //                 receiving_ports_map.put(username,clientSocket);
-            //                 output_to_client.writeBytes("REGISTERED TORECV "+username+"\n\n");
-            //                 System.out.println("REGISTERED TORECV "+username+"\n\n");
-            //             // System.out.println("OK");
-            //         }
-            //         else{
-            //             if(requestHeader.matches("REGISTER TORECV (.*?)") && !requestHeader.matches(regToRecv)){
-            //                 output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
-            //                 System.out.println("ERROR 100 Malformed username\n\n");
-            //             }
-            //             else{
-            //                 output_to_client.writeBytes("ERROR 101 No user registered\n\n");        
-            //                 System.out.println("ERROR 101 No user registered\n\n");
-            //             }    
-            //             try{clientSocket.close();}
-            //             catch(Exception err){;}
-            //             try{socket_streams.remove(clientSocket);}
-            //             catch(Exception err){;}
-            //         }
-            //     }
-            //     else if(requestHeader.matches("REGISTER TORECV (.*?)") && !requestHeader.matches(regToRecv)){
-            //         output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
-            //         System.out.println("ERROR 100 Malformed username\n\n");
-            //         try{clientSocket.close();}
-            //         catch(Exception err){;}
-            //         try{socket_streams.remove(clientSocket);}
-            //         catch(Exception err){;}
-            //     }
-            //     else{
-            //         output_to_client.writeBytes("ERROR 101 No user registered\n\n");
-            //         System.out.println("ERROR 101 No user registered\n\n");
-            //         try{clientSocket.close();}
-            //         catch(Exception err){;}
-            //         try{socket_streams.remove(clientSocket);}
-            //         catch(Exception err){;}
-
-            //     }
-                
-            //     System.out.println("Closing the server_sending thread");
+            
             }
         }
         catch(IOException e){
-            System.out.println("IOError");
+            
+            System.out.println("Ctrl C deregistration");
             try{clientSocket.close();}
             catch(Exception err){;}
+            
             try{socket_streams.remove(clientSocket);}
+            catch(Exception err){;}
+            try{public_key_map.remove(clientUserName);}
+            catch(Exception err){;}
+            
+            try{sending_ports_map.remove(clientUserName);}
+            catch(Exception err){;}
+            try{receiving_ports_map.remove(clientUserName);}
             catch(Exception err){;}
         }
     }
