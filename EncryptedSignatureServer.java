@@ -424,6 +424,39 @@ class ClientHandler implements Runnable{
                             
                         }
                     }
+                    else if(firstLine.matches("UNREGISTER (.*?)") && secondLine.matches("")){
+                        Pattern pattern = Pattern.compile("UNREGISTER ([a-zA-Z0-9]+)");
+                        Matcher matcher = pattern.matcher(firstLine);
+                        if(matcher.find()){
+                            String usernameToUnregister = matcher.group(1);
+                            if(usernameToUnregister.matches(sender_username)){
+                                output_to_client.writeBytes("UNREGISTERED "+usernameToUnregister+"\n\n");    
+                                System.out.println("UNREGISTERED "+usernameToUnregister+"\n\n");    
+                                try{clientSocket.close();}
+                                catch(Exception err){;}
+                                try{public_key_map.remove(sender_username);}
+                                catch(Exception err){;}
+                                try{socket_streams.remove(clientSocket);}
+                                catch(Exception err){;}
+                                try{sending_ports_map.remove(sender_username);}
+                                catch(Exception err){;}
+                                try{receiving_ports_map.remove(sender_username);}
+                                catch(Exception err){;}
+                                return;   
+                            }
+                            else{
+                                output_to_client.writeBytes("ERROR 200 You cannot unregister other user\n\n");
+                                System.out.println("ERROR 200 You cannont unregister other user\n\n");
+                                continue;
+                            }
+                        }
+                        else{
+                            output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
+                            System.out.println("ERROR 100 Malformed username\n\n");
+                            continue;
+
+                        }
+                    }
                     else{
 
                         output_to_client.writeBytes("ERROR 103 Header incomplete\n\n");
