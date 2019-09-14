@@ -16,7 +16,7 @@ import java.security.spec.X509EncodedKeySpec;
 
 import javax.crypto.Cipher;
 
-class Cryptography{
+class Cryptography2{
 
     private static final String ALGORITHM = "RSA";
 
@@ -84,7 +84,7 @@ public class EncryptedClient {
         this.username = username;
         this.inFromUser = new BufferedReader(new InputStreamReader(System.in));
         try{
-        KeyPair generateKeyPair = Cryptography.generateKeyPair();
+        KeyPair generateKeyPair = Cryptography2.generateKeyPair();
         publicKey = generateKeyPair.getPublic().getEncoded();
         privateKey = generateKeyPair.getPrivate().getEncoded();
         }
@@ -478,7 +478,7 @@ public class EncryptedClient {
                 //byte[] encryptedData = 
 
 
-                String encryptedData = java.util.Base64.getEncoder().encodeToString(Cryptography.encrypt(receiverPublicKey,array[1].getBytes()));
+                String encryptedData = java.util.Base64.getEncoder().encodeToString(Cryptography2.encrypt(receiverPublicKey,array[1].getBytes()));
                 output = "SEND " + to_username +"\nContent-length: "+Integer.toString(encryptedData.length())
                                     +"\n\n" + encryptedData;
                                     //+array[1];
@@ -586,7 +586,7 @@ public class EncryptedClient {
             // for(int i =0;i<length;i++)
                 // message = message +inFromReceiveServer.read();
             //String = encryptedData
-            byte[] decryptedData = Cryptography.decrypt(this.privateKey, java.util.Base64.getDecoder().decode(messageString));
+            byte[] decryptedData = Cryptography2.decrypt(this.privateKey, java.util.Base64.getDecoder().decode(messageString));
             String message = new String(decryptedData);
 
             String output = "RECEIVED "+fromusername+"\n\n";
