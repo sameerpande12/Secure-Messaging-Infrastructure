@@ -8,7 +8,7 @@ import java.util.regex.Pattern;
 import java.util.AbstractMap;
 import java.util.concurrent.ConcurrentHashMap;
 
-class ClientHandler implements Runnable{
+class EncryptedSignatureClientHandler implements Runnable{
     private Socket clientSocket;
 
     private String regToSend = "REGISTER TOSEND ([a-zA-Z0-9]+)";
@@ -23,7 +23,7 @@ class ClientHandler implements Runnable{
     private ConcurrentHashMap<String,Socket> sending_ports_map;
     private ConcurrentHashMap<String,String> public_key_map;
     private ConcurrentHashMap<Socket,AbstractMap.SimpleEntry<BufferedReader,DataOutputStream>> socket_streams;
-    public ClientHandler(Socket inputSocket,boolean isReceiver,ConcurrentHashMap<String,Socket>receiving_ports_map,ConcurrentHashMap<String,Socket>sending_ports_map,ConcurrentHashMap<Socket,AbstractMap.SimpleEntry<BufferedReader,DataOutputStream>>socket_streams,ConcurrentHashMap<String,String>public_key_map){
+    public EncryptedSignatureClientHandler(Socket inputSocket,boolean isReceiver,ConcurrentHashMap<String,Socket>receiving_ports_map,ConcurrentHashMap<String,Socket>sending_ports_map,ConcurrentHashMap<Socket,AbstractMap.SimpleEntry<BufferedReader,DataOutputStream>>socket_streams,ConcurrentHashMap<String,String>public_key_map){
         this.clientSocket = inputSocket;
         this.isReceiver = isReceiver;
         this.receiving_ports_map = receiving_ports_map;
@@ -600,14 +600,14 @@ public class EncryptedSignatureServer{
 
     
 
-    class ServerCreator implements Runnable{
+    class EncryptedSignatureServerCreator implements Runnable{
         ServerSocket serv_socket;
         boolean isReceiver;
         ConcurrentHashMap<String,Socket> receiving_ports_map;
         ConcurrentHashMap<String,Socket>sending_ports_map;
         ConcurrentHashMap<String,String> public_key_map;
         ConcurrentHashMap<Socket,AbstractMap.SimpleEntry<BufferedReader,DataOutputStream>> socket_streams;
-        public ServerCreator(ServerSocket serv_socket,boolean isReceiver,ConcurrentHashMap<String,Socket>receiving_ports_map,ConcurrentHashMap<String,Socket>sending_ports_map,ConcurrentHashMap<Socket,AbstractMap.SimpleEntry<BufferedReader,DataOutputStream>>socket_streams,ConcurrentHashMap<String,String>public_key_map){
+        public EncryptedSignatureServerCreator(ServerSocket serv_socket,boolean isReceiver,ConcurrentHashMap<String,Socket>receiving_ports_map,ConcurrentHashMap<String,Socket>sending_ports_map,ConcurrentHashMap<Socket,AbstractMap.SimpleEntry<BufferedReader,DataOutputStream>>socket_streams,ConcurrentHashMap<String,String>public_key_map){
             this.serv_socket= serv_socket;
             this.isReceiver = isReceiver;
             this.receiving_ports_map = receiving_ports_map;
@@ -620,7 +620,7 @@ public class EncryptedSignatureServer{
             while(true){
                 try{
                 Socket inputSocket = serv_socket.accept();
-                Thread thread = new Thread(new ClientHandler(inputSocket,this.isReceiver,receiving_ports_map,sending_ports_map,socket_streams,public_key_map));
+                Thread thread = new Thread(new EncryptedSignatureClientHandler(inputSocket,this.isReceiver,receiving_ports_map,sending_ports_map,socket_streams,public_key_map));
                 thread.start();
                 }
                 catch (IOException e){
@@ -638,8 +638,8 @@ public class EncryptedSignatureServer{
         ConcurrentHashMap<String,String> public_key_map = new ConcurrentHashMap<String,String>();
         ConcurrentHashMap<Socket,AbstractMap.SimpleEntry<BufferedReader,DataOutputStream>> socket_streams = new ConcurrentHashMap<Socket,AbstractMap.SimpleEntry<BufferedReader,DataOutputStream>>();
         
-        Thread t1 = new Thread(new ServerCreator(serv_receiver_socket,true,receiving_ports_map,sending_ports_map,socket_streams,public_key_map));
-        Thread t2 = new Thread(new ServerCreator(serv_sender_socket,false,receiving_ports_map,sending_ports_map,socket_streams,public_key_map));
+        Thread t1 = new Thread(new EncryptedSignatureServerCreator(serv_receiver_socket,true,receiving_ports_map,sending_ports_map,socket_streams,public_key_map));
+        Thread t2 = new Thread(new EncryptedSignatureServerCreator(serv_sender_socket,false,receiving_ports_map,sending_ports_map,socket_streams,public_key_map));
 
         t1.start();
         t2.start();
@@ -650,7 +650,7 @@ public class EncryptedSignatureServer{
         // while(true){
             
         //         Socket inputSocket = serv_send_socket.accept();
-        //         Thread thread = new ClientHandler(inputSocket);
+        //         Thread thread = new EncryptedSignatureClientHandler(inputSocket);
         //         thread.start();
             
         // }
