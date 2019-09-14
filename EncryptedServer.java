@@ -15,7 +15,7 @@ class ClientHandler implements Runnable{
     private String regToRecv = "REGISTER TORECV ([a-zA-Z0-9]+)";
     private String sendHeader = "SEND ([a-zA-Z0-9]+)";
     private String content_length_header = "Content-length: ([0-9]+)";
-    private String fetch_header = "FETCHKEY ([a-zA-Z0-9]+)";
+    private String fetch_header = "FETCHKEY (.+)";
     // private String sentHeader = "SENT ";
     private boolean isReceiver;
     private ConcurrentHashMap<String,Socket> receiving_ports_map;
