@@ -191,46 +191,7 @@ public class Client3 {
             }
         }
     }
-    /*
-    public boolean registerToSend(String username)
-    {
-        while(true){
-        if(SendSocket == null)
-            openSendSocket(ServerIP);
-            try
-            {
-                //System.out.print("Please Enter Your Username: ");
-                //String username = inFromUser.readLine();
-                String username_packet = "REGISTER TOSEND " + username +"\n\n";
-                toSendServerStream.writeBytes(username_packet); 
-                
-                String response = inFromSendServer.readLine();
-                String newline = inFromSendServer.readLine();
-
-                Pattern pattern = Pattern.compile("REGISTERED TOSEND (.*?)$");
-                Matcher matcher = pattern.matcher(response);
-                if (matcher.find())
-                {
-                    if(username.equals(matcher.group(1))){
-                        System.out.println("You have been registered to send!");
-                        return true;
-                    }
-                }
-                pattern = Pattern.compile("ERROR 100 Malformed username");
-                matcher = pattern.matcher(response);
-                if (matcher.find())
-                {
-                    System.out.println("Malformed Username");
-                    return false;
-                }    
-                //System.out.println("Please Try Again");
-            }
-            catch (IOException e)
-            {
-                //System.err.println("Please Try Again");
-            }
-        }
-    }*/
+    
 
     public boolean openReceiveSocket(String ServerIP)
     {
@@ -274,109 +235,7 @@ public class Client3 {
             }
         }
     }
-    /*
-    public boolean registerToReceive(String username)
-    {
-        while(true){
-            
-        if(ReceiveSocket == null)
-            openReceiveSocket(ServerIP);
-            try
-            {
-                
-                //System.out.print("Please Enter Your Username: ");
-                //String username = inFromUser.readLine();
-                String username_packet = "REGISTER TORECV " + username +"\n\n";
-                toReceiveServerStream.writeBytes(username_packet); 
-                String response = inFromReceiveServer.readLine();
-                String newline = inFromReceiveServer.readLine();
-
-                Pattern pattern = Pattern.compile("REGISTERED TORECV (.*?)$");
-                Matcher matcher = pattern.matcher(response);
-                if (matcher.find())
-                {
-                    if(username.equals(matcher.group(1))){
-                        System.out.println("You have been registered to receive!");
-                        return true;
-                    }
-                }
-                pattern = Pattern.compile("ERROR 100 Malformed username");
-                matcher = pattern.matcher(response);
-                if (matcher.find())
-                {
-                    System.out.println("Malformed Username");
-                    return false;
-                }    
-                //System.out.println("Please Try Again");
-            }
-            
-            catch (IOException e)
-            {
-                System.err.println("Server Not Online");
-            }
-        }
-    }
     
-    public void send()
-    {
-        while(true){
-
-            try{
-
-            String input = inFromUser.readLine();
-            if(input.charAt(0) != '@')
-            {
-                System.out.println("Message should be in format @[username] [message]");
-                continue;
-            }
-            String[] array = input.substring(1).split(" ",2);
-            if(array.length <2){
-                System.out.println("Message should be in format @[username] [message]");
-                continue;
-            }
-            username = array[0];
-            String output = "SEND " + array[0] +"\nContent-length: "+array[1].length()
-                                +"\n\n"+array[1];
-            //System.out.println(output);
-            //System.out.print(array[1]);
-            
-            toSendServerStream.writeBytes(output); 
-            }
-            catch(Exception e)
-            {
-                System.out.println("Caught");
-            }
-
-            try{//was throwing error since username was null and username.equals was called
-                String response = inFromSendServer.readLine();
-                String newline = inFromSendServer.readLine();
-                Pattern pattern = Pattern.compile("SENT (.*?)$");
-                Matcher matcher = pattern.matcher(response);
-                if (matcher.find())
-                {
-                    if(username.equals(matcher.group(1))){
-                        System.out.println("Message Sent!");
-                    }
-                }
-                pattern = Pattern.compile("ERROR 102 Unable to send$");
-                matcher = pattern.matcher(response);
-                if (matcher.find())
-                    System.out.println("Unable to Send!");
-                pattern = Pattern.compile("ERROR 103  Header incomplete");
-                matcher = pattern.matcher(response);
-                if (matcher.find()){
-                    System.out.println("Header Incomplete!");
-                    InitialiseSend();
-                }
-                
-            }
-            catch(Exception e)
-                {
-                    System.out.println("Error");
-                }
-
-        }
-    }*/
     public boolean unregister()
     {
         while(true)
@@ -520,7 +379,7 @@ public class Client3 {
 
                 MessageDigest md = MessageDigest.getInstance("SHA-256");
                 byte[] shaBytes = md.digest(Cryptography.encrypt(receiverPublicKey,array[1].getBytes(),false));
-                System.out.println("ReachedUp");
+                // System.out.println("ReachedUp");
                 String signature = java.util.Base64.getEncoder().encodeToString(Cryptography.encrypt(this.privateKey,shaBytes,true));
                 
 
@@ -534,22 +393,22 @@ public class Client3 {
                 while(true){
                     try{
                         toSendServerStream.writeBytes(output);
-                        System.out.println(output);
+                        // System.out.println(output);
                         //toSendServerStream.write(encryptedData,0,encryptedData.length);
                         break; 
                     }
                     catch(Exception e)
                     {
-                        System.out.println("AAH");
+                        // System.out.println("AAH");
                         openSendSocket(this.ServerIP);
                     }
                 }
             //was throwing error since username was null and username.equals was called
                 String response = inFromSendServer.readLine();
-                System.out.println(response);
+                // System.out.println(response);
                 
                 String newline = inFromSendServer.readLine();
-                System.out.println(newline);
+                // System.out.println(newline);
                 pattern = Pattern.compile("SENT (.*?)$");
                 matcher = pattern.matcher(response);
                 if (matcher.find())
@@ -603,7 +462,7 @@ public class Client3 {
                 ReceiveSocket.close();
                 break;
             }
-            System.out.println(input);
+            // System.out.println(input);
             pattern = Pattern.compile("FORWARD (.*?)$");
             matcher = pattern.matcher(input);
             if (matcher.find())
@@ -612,7 +471,7 @@ public class Client3 {
                 correct = false;
 
             input = inFromReceiveServer.readLine();
-            System.out.println(input);
+            // System.out.println(input);
             pattern = Pattern.compile("Content-length: (.*?)$");
             matcher = pattern.matcher(input);
             if (matcher.find())
@@ -622,7 +481,7 @@ public class Client3 {
 
             String signature="";
             input = inFromReceiveServer.readLine();
-            System.out.println(input);
+            // System.out.println(input);
             pattern = Pattern.compile("Signature: (.*?)$");
             matcher = pattern.matcher(input);
             if (matcher.find())
@@ -633,7 +492,7 @@ public class Client3 {
 
             // System.out.println("Message Length :"+Integer.toString(length));
             input = inFromReceiveServer.readLine();
-            System.out.println(input);
+            // System.out.println(input);
 
             if(correct == false)
             {
@@ -647,7 +506,7 @@ public class Client3 {
             char[] msg_buf = new char[length];
             int contentLength = inFromReceiveServer.read(msg_buf,0,length);
             String messageString = new String(msg_buf);
-            System.out.println("message string : "+messageString);
+            // System.out.println("message string : "+messageString);
             
             // for(int i =0;i<length;i++)
                 // message = message +inFromReceiveServer.read();
@@ -658,7 +517,7 @@ public class Client3 {
             byte[] shaBytes = md.digest(java.util.Base64.getDecoder().decode(messageString));
 
             String output = "FETCHKEY " + fromusername+"\n\n";
-            System.out.println("Sending :"+output);
+            // System.out.println("Sending :"+output);
                 
             while(true){
                 try{
@@ -672,14 +531,14 @@ public class Client3 {
             }
 
             input = inFromReceiveServer.readLine();
-            System.out.println("Her"+input);
+            // System.out.println("Her"+input);
             correct = true;
 
             length = 0;
 
             pattern = Pattern.compile("FETCHEDKEY (.*?)$");
             matcher = pattern.matcher(input);
-            System.out.println("WritingInput"+input);
+            // System.out.println("WritingInput"+input);
             if (matcher.find())
                 fromusername = matcher.group(1);
             else
@@ -694,8 +553,8 @@ public class Client3 {
                 correct = false;
         // System.out.println("Message Length :"+Integer.toString(length));
             input = inFromReceiveServer.readLine();
-            System.out.println("Writing"+length);
-            System.out.println("Writing"+input);
+            // System.out.println("Writing"+length);
+            // System.out.println("Writing"+input);
             if(correct == false)
             {
                 output = "ERROR 103 Header incomplete\n\n";
@@ -705,7 +564,7 @@ public class Client3 {
                 openReceiveSocket(this.ServerIP);
                 continue;
             }
-            System.out.println("Writing");
+            // System.out.println("Writing");
             toReceiveServerStream.writeBytes("FETCH ACK\n\n");
             msg_buf= new char[length];
             contentLength = inFromReceiveServer.read(msg_buf,0,length);
@@ -714,8 +573,8 @@ public class Client3 {
             byte[] senderPublicKey = java.util.Base64.getDecoder().decode(senderPublicKeyString);
             byte[] KpubHash = Cryptography.decrypt(senderPublicKey,sigbyte,true);
 
-            System.out.println(KpubHash);
-            System.out.println(shaBytes);
+            // System.out.println(KpubHash);
+            // System.out.println(shaBytes);
 
 
 
