@@ -90,46 +90,7 @@ public class Client {
             }
         }
     }
-    /*
-    public boolean registerToSend(String username)
-    {
-        while(true){
-        if(SendSocket == null)
-            openSendSocket(ServerIP);
-            try
-            {
-                //System.out.print("Please Enter Your Username: ");
-                //String username = inFromUser.readLine();
-                String username_packet = "REGISTER TOSEND " + username +"\n\n";
-                toSendServerStream.writeBytes(username_packet); 
-                
-                String response = inFromSendServer.readLine();
-                String newline = inFromSendServer.readLine();
-
-                Pattern pattern = Pattern.compile("REGISTERED TOSEND (.*?)$");
-                Matcher matcher = pattern.matcher(response);
-                if (matcher.find())
-                {
-                    if(username.equals(matcher.group(1))){
-                        System.out.println("You have been registered to send!");
-                        return true;
-                    }
-                }
-                pattern = Pattern.compile("ERROR 100 Malformed username");
-                matcher = pattern.matcher(response);
-                if (matcher.find())
-                {
-                    System.out.println("Malformed Username");
-                    return false;
-                }    
-                //System.out.println("Please Try Again");
-            }
-            catch (IOException e)
-            {
-                //System.err.println("Please Try Again");
-            }
-        }
-    }*/
+    
 
     public boolean openReceiveSocket(String ServerIP)
     {
@@ -171,109 +132,7 @@ public class Client {
             }
         }
     }
-    /*
-    public boolean registerToReceive(String username)
-    {
-        while(true){
-            
-        if(ReceiveSocket == null)
-            openReceiveSocket(ServerIP);
-            try
-            {
-                
-                //System.out.print("Please Enter Your Username: ");
-                //String username = inFromUser.readLine();
-                String username_packet = "REGISTER TORECV " + username +"\n\n";
-                toReceiveServerStream.writeBytes(username_packet); 
-                String response = inFromReceiveServer.readLine();
-                String newline = inFromReceiveServer.readLine();
-
-                Pattern pattern = Pattern.compile("REGISTERED TORECV (.*?)$");
-                Matcher matcher = pattern.matcher(response);
-                if (matcher.find())
-                {
-                    if(username.equals(matcher.group(1))){
-                        System.out.println("You have been registered to receive!");
-                        return true;
-                    }
-                }
-                pattern = Pattern.compile("ERROR 100 Malformed username");
-                matcher = pattern.matcher(response);
-                if (matcher.find())
-                {
-                    System.out.println("Malformed Username");
-                    return false;
-                }    
-                //System.out.println("Please Try Again");
-            }
-            
-            catch (IOException e)
-            {
-                System.err.println("Server Not Online");
-            }
-        }
-    }
     
-    public void send()
-    {
-        while(true){
-
-            try{
-
-            String input = inFromUser.readLine();
-            if(input.charAt(0) != '@')
-            {
-                System.out.println("Message should be in format @[username] [message]");
-                continue;
-            }
-            String[] array = input.substring(1).split(" ",2);
-            if(array.length <2){
-                System.out.println("Message should be in format @[username] [message]");
-                continue;
-            }
-            username = array[0];
-            String output = "SEND " + array[0] +"\nContent-length: "+array[1].length()
-                                +"\n\n"+array[1];
-            //System.out.println(output);
-            //System.out.print(array[1]);
-            
-            toSendServerStream.writeBytes(output); 
-            }
-            catch(Exception e)
-            {
-                System.out.println("Caught");
-            }
-
-            try{//was throwing error since username was null and username.equals was called
-                String response = inFromSendServer.readLine();
-                String newline = inFromSendServer.readLine();
-                Pattern pattern = Pattern.compile("SENT (.*?)$");
-                Matcher matcher = pattern.matcher(response);
-                if (matcher.find())
-                {
-                    if(username.equals(matcher.group(1))){
-                        System.out.println("Message Sent!");
-                    }
-                }
-                pattern = Pattern.compile("ERROR 102 Unable to send$");
-                matcher = pattern.matcher(response);
-                if (matcher.find())
-                    System.out.println("Unable to Send!");
-                pattern = Pattern.compile("ERROR 103  Header incomplete");
-                matcher = pattern.matcher(response);
-                if (matcher.find()){
-                    System.out.println("Header Incomplete!");
-                    InitialiseSend();
-                }
-                
-            }
-            catch(Exception e)
-                {
-                    System.out.println("Error");
-                }
-
-        }
-    }*/
     public boolean unregister()
     {
         while(true)
@@ -458,7 +317,7 @@ public class Client {
             }
             catch(Exception e)
             {
-                System.out.println("r");
+                
                     
                 //System.out.println("No " +ReceiveSocket);
                 if(inFromReceiveServer == null){
