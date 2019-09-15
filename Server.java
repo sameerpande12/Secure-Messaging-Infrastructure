@@ -37,17 +37,12 @@ class ClientHandler implements Runnable{
             DataOutputStream  output_to_client = new DataOutputStream(clientSocket.getOutputStream());
 
             AbstractMap.SimpleEntry<BufferedReader,DataOutputStream> stream_pairs = new AbstractMap.SimpleEntry<>(input_from_client,output_to_client);
-            // if(clientSocket==null || input_from_client==null || output_to_client==null){
-            //     System.out.println("Gadbad hai bro");
-            // }
-            // else{
-            //     System.out.println("Chill hai");
-            // }
+            
             
             
             socket_streams.put(clientSocket, stream_pairs);
             String requestHeader = input_from_client.readLine();
-            System.out.println("~"+requestHeader);
+            System.out.println(requestHeader);
             if(!(requestHeader.matches(regToSend) || requestHeader.matches(regToRecv))){
                 if((requestHeader.matches("REGISTER TOSEND (.*?)") && !requestHeader.matches(regToSend)) || (requestHeader.matches("REGISTER TORECV (.*?)") && !requestHeader.matches(regToRecv))){
                     output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
@@ -65,12 +60,14 @@ class ClientHandler implements Runnable{
             }
 
             String nextline = input_from_client.readLine();
+            System.out.println(nextline);
             
             if(this.isReceiver){
                 String sender_username;
                 // System.out.println("HI");
                 if(requestHeader.matches(regToSend) && nextline.matches("")){
                     // System.out.println("HII");
+                    
                     Pattern pattern = Pattern.compile(regToSend);
                     Matcher matcher = pattern.matcher(requestHeader);
                     if(matcher.find()){
@@ -141,7 +138,7 @@ class ClientHandler implements Runnable{
                         String receipient_username;
                         if(matcher.find()){
                              receipient_username = matcher.group(1);
-                             System.out.println("Receipient username: "+receipient_username);
+                            //  System.out.println("Receipient username: "+receipient_username);
                         }
                         else{
                             output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
@@ -154,10 +151,11 @@ class ClientHandler implements Runnable{
                         
                         pattern = Pattern.compile(content_length_header);
                         matcher = pattern.matcher(secondLine);
-                        System.out.println("waiting to reading newline");
+                        // System.out.println("waiting to reading newline");
                         String newline = input_from_client.readLine();
-                        System.out.println("done reading newline");
-                        System.out.println("newline :"+newline);
+                        System.out.println(newline);
+                        // System.out.println("done reading newline");
+                        // System.out.println("newline :"+newline);
                         int messageLength;
                         if(matcher.find() && newline.matches("")){
                             messageLength = Integer.parseInt(matcher.group(1));
@@ -179,7 +177,7 @@ class ClientHandler implements Runnable{
                         
                         //begin reading message
                         char [] message = new char[messageLength];
-                        System.out.println("Message length="+messageLength);
+                        // System.out.println("Message length="+messageLength);
                         
                         // int num_chars_read = input_from_client.read(message, 0, messageLength);
                         input_from_client.read(message, 0, messageLength);
@@ -196,7 +194,7 @@ class ClientHandler implements Runnable{
                         synchronized(receipient_socket){
                              
                             String forward_string = String.format("FORWARD %s\nContent-length: %d\n\n%s",sender_username,messageLength,new String(message));
-                            System.out.println("\n"+forward_string);
+                            System.out.println(forward_string);
 
                             BufferedReader input_from_receipient = (socket_streams.get(receipient_socket)).getKey();
                             DataOutputStream output_to_receipient = (socket_streams.get(receipient_socket)).getValue();
@@ -215,6 +213,7 @@ class ClientHandler implements Runnable{
                                 // matcher = pattern.matcher(firstLine);
                                 
                                 output_to_client.writeBytes("SENT "+receipient_username+"\n\n");
+                                System.out.println("SENT "+receipient_username+"\n\n");
                             }
                             else if(firstLine.matches("ERROR 103 Header incomplete") && secondLine.matches("")){
                                 
@@ -318,7 +317,7 @@ class ClientHandler implements Runnable{
 
                 }
                 
-                System.out.println("Closing the server_sending thread");
+                // System.out.println("Closing the server_sending thread");
             }
         }
         catch(IOException e){
