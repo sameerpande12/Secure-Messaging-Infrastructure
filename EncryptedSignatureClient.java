@@ -91,7 +91,7 @@ class Cryptography{
     }
 }
 
-public class Client3 {
+public class EncryptedSignatureClient {
 
     public Socket SendSocket = null; 
     public Socket ReceiveSocket = null; 
@@ -107,7 +107,7 @@ public class Client3 {
     byte[] publicKey;
     byte[] privateKey;
     
-    public Client3(String username, String ServerIP)
+    public EncryptedSignatureClient(String username, String ServerIP)
     {
         this.ServerIP = ServerIP;
         this.username = username;
@@ -636,7 +636,7 @@ public class Client3 {
 
     public static void main(String[] args) {
     
-        Client3 client = new Client3(args[0],args[1]);
+        EncryptedSignatureClient client = new EncryptedSignatureClient(args[0],args[1]);
 
         boolean a = client.openSendSocket(args[1]);
         if(a == false)
