@@ -49,7 +49,7 @@ class ClientHandlerEncryptedServer implements Runnable{
             
             socket_streams.put(clientSocket, stream_pairs);
             String requestHeader = input_from_client.readLine();
-            System.out.println("~"+requestHeader);
+            System.out.println(requestHeader);
             if(!(requestHeader.matches(regToSend) || requestHeader.matches(regToRecv) || requestHeader.matches(fetch_header))){
                 if((requestHeader.matches("REGISTER TOSEND (.*?)") && !requestHeader.matches(regToSend)) || (requestHeader.matches("REGISTER TORECV (.*?)") && !requestHeader.matches(regToRecv)) || (requestHeader.matches("FETCHKEY (.*?)") && !requestHeader.matches(fetch_header))){
                     output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
@@ -67,7 +67,7 @@ class ClientHandlerEncryptedServer implements Runnable{
             }
 
             String nextline = input_from_client.readLine();
-            System.out.println("~"+nextline);
+            System.out.println(nextline);
             
             if(this.isReceiver){
                 String sender_username;
@@ -194,9 +194,9 @@ class ClientHandlerEncryptedServer implements Runnable{
                             }
 
                             String fetch_ack = input_from_client.readLine();
-                            System.out.println("~"+fetch_ack);
+                            System.out.println(fetch_ack);
                             String tempString = input_from_client.readLine();
-                            System.out.println("~"+tempString);
+                            System.out.println(tempString);
                             if(fetch_ack.matches("FETCH ACK")){
                                 continue;
                             }
@@ -301,6 +301,7 @@ class ClientHandlerEncryptedServer implements Runnable{
                                         // matcher = pattern.matcher(firstLine);
                                         
                                         output_to_client.writeBytes("SENT "+receipient_username+"\n\n");
+                                        System.out.println("SENT "+receipient_username+"\n\n");
                                     }
                                     else if(firstLine.matches("ERROR 103 Header incomplete") && secondLine.matches("")){
                                         
@@ -429,6 +430,7 @@ class ClientHandlerEncryptedServer implements Runnable{
                         pattern = Pattern.compile(content_length_header);
                         matcher = pattern.matcher(nextline);
                         String newline = input_from_client.readLine();
+                        System.out.println(newline);
                         int messageLength;
                         if(matcher.find() && newline.matches("")){
                             messageLength = Integer.parseInt(matcher.group(1));
@@ -450,6 +452,7 @@ class ClientHandlerEncryptedServer implements Runnable{
                         }
                         char [] message = new char[messageLength];
                         input_from_client.read(message,0,messageLength);
+                        System.out.println(new String(message));
                         if(receiving_ports_map.containsKey(receiver_username)){
                                 output_to_client.writeBytes("ERROR 101 No user registered\n\n");        
                                 System.out.println("ERROR 101 No user registered:1\n\n");
@@ -463,6 +466,7 @@ class ClientHandlerEncryptedServer implements Runnable{
                         receiving_ports_map.put(receiver_username,clientSocket);
                         public_key_map.put(receiver_username,new String(message));
                         output_to_client.writeBytes("REGISTERED TORECV "+receiver_username+"\n\n");  
+                        System.out.println("REGISTERED TORECV "+receiver_username+"\n\n");  
                     }
                     else{
                         output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
