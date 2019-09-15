@@ -39,17 +39,12 @@ class EncryptedSignatureClientHandler implements Runnable{
             DataOutputStream  output_to_client = new DataOutputStream(clientSocket.getOutputStream());
 
             AbstractMap.SimpleEntry<BufferedReader,DataOutputStream> stream_pairs = new AbstractMap.SimpleEntry<>(input_from_client,output_to_client);
-            // if(clientSocket==null || input_from_client==null || output_to_client==null){
-            //     System.out.println("Gadbad hai bro");
-            // }
-            // else{
-            //     System.out.println("Chill hai");
-            // }
+            
             
             
             socket_streams.put(clientSocket, stream_pairs);
             String requestHeader = input_from_client.readLine();
-            System.out.println("~~"+requestHeader);
+            System.out.println(requestHeader);
             if(!(requestHeader.matches(regToSend) || requestHeader.matches(regToRecv) || requestHeader.matches(fetch_header))){
                 if((requestHeader.matches("REGISTER TOSEND (.*?)") && !requestHeader.matches(regToSend)) || (requestHeader.matches("REGISTER TORECV (.*?)") && !requestHeader.matches(regToRecv)) || (requestHeader.matches("FETCHKEY (.*?)") && !requestHeader.matches(fetch_header))){
                     output_to_client.writeBytes("ERROR 100 Malformed username\n\n");
@@ -67,13 +62,13 @@ class EncryptedSignatureClientHandler implements Runnable{
             }
 
             String nextline = input_from_client.readLine();
-            System.out.println("~"+nextline);
+            System.out.println(nextline);
             
             if(this.isReceiver){
                 String sender_username;
-                // System.out.println("HI");
+                
                 if(requestHeader.matches(regToSend) && nextline.matches("")){
-                    // System.out.println("HII");
+                    
                     Pattern pattern = Pattern.compile(regToSend);
                     Matcher matcher = pattern.matcher(requestHeader);
                     if(matcher.find()){
@@ -132,14 +127,14 @@ class EncryptedSignatureClientHandler implements Runnable{
 
                     try{
                         String firstLine = input_from_client.readLine();
-                        System.out.println("~"+firstLine);
+                        System.out.println(firstLine);
                         if(!receiving_ports_map.containsKey(sender_username)){
                             output_to_client.writeBytes("ERROR 101 No user registered\n\n");
                             continue;
                         }
 
                         String secondLine = input_from_client.readLine();
-                        System.out.println("~"+secondLine);
+                        System.out.println(secondLine);
                         if(firstLine.matches("FETCHKEY (.*?)")){
                             if(firstLine.matches(fetch_header) && secondLine.matches("")){
                                 Pattern fpattern = Pattern.compile(fetch_header);
@@ -153,9 +148,9 @@ class EncryptedSignatureClientHandler implements Runnable{
                                     String public_key;
                                     if(public_key_map.containsKey(requested_username)){
                                         public_key = public_key_map.get(requested_username);
-                                        System.out.println("public_key:"+public_key);
+                                        // System.out.println("public_key:"+public_key);
                                         String fetched_message = "FETCHEDKEY "+requested_username+"\nContent-length: "+Integer.toString(public_key.length()) +"\n\n"+public_key;
-                                        // System.out.println(fetched_message);
+                                        System.out.println(fetched_message);
                                         output_to_client.writeBytes(fetched_message);
                                     }
                                     else{
@@ -193,9 +188,9 @@ class EncryptedSignatureClientHandler implements Runnable{
                             }
 
                             String fetch_ack = input_from_client.readLine();
-                            System.out.println("~"+fetch_ack);
+                            System.out.println(fetch_ack);
                             String tempString = input_from_client.readLine();
-                            System.out.println("~"+tempString);
+                            System.out.println(tempString);
                             if(fetch_ack.matches("FETCH ACK")){
                                 continue;
                             }
@@ -350,9 +345,9 @@ class EncryptedSignatureClientHandler implements Runnable{
                                                 }
 
                                                 firstLine = input_from_receipient.readLine();
-                                                System.out.println("Input from receipient firstLine "+firstLine);
+                                                System.out.println(firstLine);
                                                 secondLine = input_from_receipient.readLine();
-                                                System.out.println("Input from receipient secondLine "+secondLine);
+                                                System.out.println(secondLine);
 
                                                 if(!(firstLine.matches("FETCH ACK")&& secondLine.matches(""))){
                                                     output_to_client.writeBytes("ERROR 102 Unable to send\n\n");
@@ -493,7 +488,7 @@ class EncryptedSignatureClientHandler implements Runnable{
 
             }
             else{
-                System.out.println("Began server_sending thread. (client recv sockets)");
+                // System.out.println("Began server_sending thread. (client recv sockets)");
                 // System.out.println(requestHeader);
                 // System.out.println(nextline);
                 
