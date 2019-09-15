@@ -553,9 +553,9 @@ public class EncryptedServer{
         }
     }
 
-    public EncryptedServer(int receiver_port,int sender_port)throws IOException,InterruptedException{
-        serv_receiver_socket = new ServerSocket(receiver_port);//server listens on this port
-        serv_sender_socket = new ServerSocket(sender_port);// server sends from this port
+    public EncryptedServer(int receiver_port,int sender_port,String ip)throws IOException,InterruptedException{
+        serv_receiver_socket = new ServerSocket(receiver_port,0,InetAddress.getByName(ip));//server listens on this port
+        serv_sender_socket = new ServerSocket(sender_port,0,InetAddress.getByName(ip));// server sends from this port
         ConcurrentHashMap <String,Socket> receiving_ports_map = new ConcurrentHashMap<String,Socket>();//maps usernames to their receiving sockets
         ConcurrentHashMap <String,Socket> sending_ports_map = new ConcurrentHashMap<String,Socket>();
         ConcurrentHashMap<String,String> public_key_map = new ConcurrentHashMap<String,String>();
@@ -580,8 +580,16 @@ public class EncryptedServer{
         
     }
     public static void main(String args[])throws IOException,InterruptedException{
-        
-        new EncryptedServer(6000,6100);
-        
+        try{    
+            String ip = "localhost";
+            if(args.length>0){
+                ip = args[0];
+            }
+            new EncryptedServer(6000,6100,ip);
+        }
+        catch(Exception err){
+            System.out.println("Caught Error. Server Closing");
+            System.out.println(err);
+        }
     }
 }
