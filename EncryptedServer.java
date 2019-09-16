@@ -579,17 +579,17 @@ public class EncryptedServer{
         // }
         
     }
-    public static void main(String args[])throws IOException,InterruptedException{
-        try{    
-            String ip = "localhost";
-            if(args.length>0){
-                ip = args[0];
-            }
-            new EncryptedServer(6000,6100,ip);
-        }
-        catch(Exception err){
-            System.out.println("Caught Error. Server Closing");
-            System.out.println(err);
-        }
-    }
+    // public static void main(String args[])throws IOException,InterruptedException{
+    //     try{    
+    //         String ip = "localhost";
+    //         if(args.length>0){
+    //             ip = args[0];
+    //         }
+    //         new EncryptedServer(6000,6100,ip);
+    //     }
+    //     catch(Exception err){
+    //         System.out.println("Caught Error. Server Closing");
+    //         System.out.println(err);
+    //     }
+    // }
 }

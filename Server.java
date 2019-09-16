@@ -459,18 +459,18 @@ public class Server{
         // }
         
     }
-    public static void main(String args[])throws IOException,InterruptedException{
-        try{
-            String ip = "localhost";
-            if(args.length>0){
-                ip = args[0];
-            }
-            new Server(6000,6100,ip);
-        }
-        catch(Exception e){
-            System.out.println("Exception caught.Closing Server");
-            System.out.println(e);
-        }
+    // public static void main(String args[])throws IOException,InterruptedException{
+    //     try{
+    //         String ip = "localhost";
+    //         if(args.length>0){
+    //             ip = args[0];
+    //         }
+    //         new Server(6000,6100,ip);
+    //     }
+    //     catch(Exception e){
+    //         System.out.println("Exception caught.Closing Server");
+    //         System.out.println(e);
+    //     }
         
-    }
+    // }
 }

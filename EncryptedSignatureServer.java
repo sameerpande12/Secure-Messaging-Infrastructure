@@ -260,8 +260,9 @@ class EncryptedSignatureClientHandler implements Runnable{
                                 }
 
                                 String signatureLine = input_from_client.readLine();
-                                
+                                System.out.println(signatureLine);
                                 String newline = input_from_client.readLine();
+                                System.out.println(newline);
                                 if(signatureLine.matches("Signature: (.*?)") && newline.matches("")){
                                             Pattern sigPattern = Pattern.compile("Signature: (.+)");
                                             Matcher sigMatcher = sigPattern.matcher(signatureLine);
@@ -651,17 +652,17 @@ public class EncryptedSignatureServer{
         // }
         
     }
-    public static void main(String args[])throws IOException,InterruptedException{
-        try{
-            String ip = "localhost";
-            if(args.length>0){
-                ip = args[0];
-            }
-            new EncryptedSignatureServer(6000,6100,ip);
-        }
-        catch(Exception err){
-            System.out.println("Caught Exception. Server Closing");
-            System.out.println(err);
-        }
-    }
+    // public static void main(String args[])throws IOException,InterruptedException{
+    //     try{
+    //         String ip = "localhost";
+    //         if(args.length>0){
+    //             ip = args[0];
+    //         }
+    //         new EncryptedSignatureServer(6000,6100,ip);
+    //     }
+    //     catch(Exception err){
+    //         System.out.println("Caught Exception. Server Closing");
+    //         System.out.println(err);
+    //     }
+    // }
 }
